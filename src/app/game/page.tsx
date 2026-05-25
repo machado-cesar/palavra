@@ -100,20 +100,14 @@ export default function GamePage() {
         return
       }
 
-      // Timer ativo (jogo em pausa)
-      if (timer && new Date(timer) > new Date()) {
-        setTimerEndsAt(timer)
-        setStatus('waiting_timer')
-        if (currentSession) setCurrentMaxScore(currentSession.maxPossibleScore)
-        return
-      }
-
-      // Sessão em andamento (retornou no meio do jogo)
-      if (currentSession) {
-        // Reconstruir tentativas e teclado a partir do banco
-        if (currentSession.attempts?.length > 0) {
+      // Função auxiliar para reconstruir estado a partir das tentativas salvas
+      function restoreSessionState(session: typeof currentSession) {
+        if (!session) return
+        setCurrentMaxScore(session.maxPossibleScore)
+        setSkips(session.timerSkips || 0)
+        if (session.attempts?.length > 0) {
           const rebuiltKeyboard: Record<string, LetterStatus> = {}
-          for (const attempt of currentSession.attempts) {
+          for (const attempt of session.attempts) {
             for (const { letter, status } of attempt.result) {
               const priority: Record<LetterStatus, number> = { correct: 3, present: 2, absent: 1, empty: 0 }
               if (!rebuiltKeyboard[letter] || priority[status as LetterStatus] > priority[rebuiltKeyboard[letter]]) {
@@ -121,12 +115,23 @@ export default function GamePage() {
               }
             }
           }
-          setAttempts(currentSession.attempts)
+          setAttempts(session.attempts)
           setKeyboardState(rebuiltKeyboard)
-          setSkips(currentSession.timerSkips || 0)
         }
+      }
+
+      // Timer ativo (jogo em pausa)
+      if (timer && new Date(timer) > new Date()) {
+        restoreSessionState(currentSession)
+        setTimerEndsAt(timer)
+        setStatus('waiting_timer')
+        return
+      }
+
+      // Sessão em andamento (retornou no meio do jogo)
+      if (currentSession) {
+        restoreSessionState(currentSession)
         setStatus('playing')
-        setCurrentMaxScore(currentSession.maxPossibleScore)
         return
       }
 
