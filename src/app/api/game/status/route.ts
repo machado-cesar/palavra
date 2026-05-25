@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getTimer, getActiveSession } from '@/lib/redis'
+import { SCORING } from '@/types'
+import { getMaxScoreForAttempt } from '@/lib/scoring'
 
 export async function GET(request: NextRequest) {
   try {
@@ -116,6 +118,15 @@ export async function GET(request: NextRequest) {
       timerSkips = dbSession?.timer_skips || 0
     }
 
+    // Recalcular maxPossibleScore a partir dos dados reais (erros + skips)
+    // Evita mostrar valor desatualizado caso o Redis tenha sido salvo com MAX_SCORE antigo
+    const computedMaxScore = activeSession
+      ? Math.max(
+          getMaxScoreForAttempt(activeSession.wrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
+          SCORING.MIN_SCORE
+        )
+      : SCORING.MAX_SCORE
+
     return NextResponse.json({
       success: true,
       data: {
@@ -132,7 +143,7 @@ export async function GET(request: NextRequest) {
           wordId: activeSession.wordId,
           startedAt: activeSession.startedAt,
           score: 0,
-          maxPossibleScore: activeSession.currentMaxScore,
+          maxPossibleScore: computedMaxScore,
           timerSkips: timerSkips,
           tokenUsed: false,
           attempts: existingAttempts,
