@@ -152,14 +152,14 @@ export default function ComoJogarPage() {
       {/* Pontuação */}
       <Section title="Pontuação">
         <p className="text-zinc-300 text-sm leading-relaxed">
-          Você começa com <strong className="text-white">1.200 pontos</strong>. Cada erro ou skip reduz essa pontuação:
+          Você começa com <strong className="text-white">1.500 pontos</strong>. Cada erro ou skip reduz essa pontuação:
         </p>
         <div className="w-full rounded-xl border border-zinc-700 overflow-hidden text-sm">
           {[
-            { label: 'Pontuação base', valor: '1.200 pts', cor: 'text-zinc-200' },
+            { label: 'Pontuação base', valor: '1.500 pts', cor: 'text-zinc-200' },
             { label: 'Por cada tentativa errada', valor: '−200 pts', cor: 'text-red-400' },
             { label: 'Por cada skip de timer',    valor: '−100 pts', cor: 'text-red-400' },
-            { label: 'Mínimo ao acertar',         valor: '10 pts',   cor: 'text-green-400' },
+            { label: 'Mínimo ao acertar',         valor: '100 pts',  cor: 'text-green-400' },
           ].map(({ label, valor, cor }, i) => (
             <div
               key={i}
@@ -182,8 +182,9 @@ export default function ComoJogarPage() {
           no header e representa quantos dias consecutivos você jogou.
         </p>
         <p className="text-zinc-300 text-sm leading-relaxed">
-          A sequência <strong className="text-white">não quebra</strong> se você acertar a palavra — mesmo que use
-          skips. Mas se perder todas as 6 tentativas ou não jogar no dia, a sequência volta a zero.
+          A sequência só é mantida se você acertar a palavra <strong className="text-white">sem usar nenhum skip</strong>.
+          Usar skip, perder todas as 6 tentativas ou não jogar no dia faz a sequência voltar a zero —
+          a menos que um token a proteja.
         </p>
       </Section>
 

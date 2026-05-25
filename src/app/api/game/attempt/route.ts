@@ -63,8 +63,13 @@ export async function POST(request: NextRequest) {
     // Atualizar contadores
     const newAttemptsCount = activeSession.attemptsCount + 1
     const newWrongAttempts = won ? activeSession.wrongAttempts : activeSession.wrongAttempts + 1
-    const newMaxScore = getMaxScoreForAttempt(newAttemptsCount)
     const gameOver = !won && isGameOver(newAttemptsCount)
+
+    // Score máximo exibido: desconta erros acumulados E skips já realizados
+    const newMaxScore = Math.max(
+      getMaxScoreForAttempt(newWrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
+      SCORING.MIN_SCORE
+    )
 
     // Montar objeto da tentativa
     const attempt = {
@@ -90,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     if (won || gameOver) {
       // Jogo terminou — calcular pontuação final
-      finalScore = won ? calculateFinalScore(newAttemptsCount, timerSkips) : 0
+      finalScore = won ? calculateFinalScore(newWrongAttempts, timerSkips) : 0
 
       // Atualizar sessão no banco
       await supabaseAdmin

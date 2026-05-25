@@ -1,19 +1,18 @@
 import { SCORING } from '@/types'
 
 /**
- * Calcula a pontuação máxima disponível para uma determinada tentativa.
- * Tentativa 1 → 1200, Tentativa 2 → 1000, ..., Tentativa 6 → 200
+ * Calcula a pontuação máxima disponível com base nos erros acumulados.
+ * 0 erros → 1500, 1 erro → 1300, 2 erros → 1100, ..., 5 erros → 500
  */
-export function getMaxScoreForAttempt(attemptNumber: number): number {
-  const penalty = (attemptNumber - 1) * SCORING.PENALTY_PER_WRONG
-  return Math.max(SCORING.MAX_SCORE - penalty, 0)
+export function getMaxScoreForAttempt(wrongAttempts: number): number {
+  return Math.max(SCORING.MAX_SCORE - wrongAttempts * SCORING.PENALTY_PER_WRONG, 0)
 }
 
 /**
- * Calcula a pontuação final após acertar, descontando penalidades de skips.
+ * Calcula a pontuação final ao acertar, descontando erros e skips acumulados.
  */
-export function calculateFinalScore(attemptNumber: number, skips: number): number {
-  const base = getMaxScoreForAttempt(attemptNumber)
+export function calculateFinalScore(wrongAttempts: number, skips: number): number {
+  const base = getMaxScoreForAttempt(wrongAttempts)
   const skipPenalty = skips * SCORING.PENALTY_PER_SKIP
   return Math.max(base - skipPenalty, SCORING.MIN_SCORE)
 }
@@ -35,7 +34,6 @@ export function isGameOver(totalAttempts: number): boolean {
 
 /**
  * Retorna a porcentagem da pontuação atual em relação ao máximo.
- * Usado para a barra de pontuação visual.
  */
 export function getScorePercentage(currentMaxScore: number): number {
   return Math.round((currentMaxScore / SCORING.MAX_SCORE) * 100)

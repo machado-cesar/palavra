@@ -103,12 +103,12 @@ export interface SkipResponse {
 // ─── Pontuação ────────────────────────────────────────────────────────────────
 
 export const SCORING = {
-  MAX_SCORE: 1200,
+  MAX_SCORE: 1500,
   ATTEMPTS_BEFORE_TIMER: 1,   // timer ativa após a 2ª tentativa errada (índice 1)
   MAX_ATTEMPTS: 6,
   PENALTY_PER_WRONG: 200,     // -200 pts por tentativa errada
   PENALTY_PER_SKIP: 100,      // -100 pts por pular o timer
-  MIN_SCORE: 10,              // pontuação mínima ao acertar
+  MIN_SCORE: 100,             // pontuação mínima ao acertar
 } as const
 
 // Timer progressivo por número de erros acumulados
