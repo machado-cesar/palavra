@@ -65,12 +65,6 @@ export async function POST(request: NextRequest) {
     const newWrongAttempts = won ? activeSession.wrongAttempts : activeSession.wrongAttempts + 1
     const gameOver = !won && isGameOver(newAttemptsCount)
 
-    // Score máximo exibido: desconta erros acumulados E skips já realizados
-    const newMaxScore = Math.max(
-      getMaxScoreForAttempt(newWrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
-      SCORING.MIN_SCORE
-    )
-
     // Montar objeto da tentativa
     const attempt = {
       word: normalizedGuess,
@@ -87,6 +81,12 @@ export async function POST(request: NextRequest) {
 
     const allAttempts = [...(dbSession?.attempts || []), attempt]
     const timerSkips = dbSession?.timer_skips || 0
+
+    // Score máximo exibido: desconta erros acumulados E skips já realizados
+    const newMaxScore = Math.max(
+      getMaxScoreForAttempt(newWrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
+      SCORING.MIN_SCORE
+    )
 
     let finalScore = 0
     let timerEndsAt: string | null = null
