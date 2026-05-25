@@ -111,11 +111,11 @@ export const SCORING = {
   MIN_SCORE: 100,             // pontuação mínima ao acertar
 } as const
 
-// Timer progressivo por número de erros acumulados
-// wrongAttempts=2 → 2min, 3 → 5min, 4 → 10min, 5+ → 30min
-export function getTimerMinutes(wrongAttempts: number): number {
-  if (wrongAttempts <= 2) return 2
-  if (wrongAttempts === 3) return 5
-  if (wrongAttempts === 4) return 10
+// Timer progressivo por número de skips já realizados
+// 0 skips → 2min, 1 skip → 5min, 2 skips → 10min, 3+ skips → 30min
+export function getTimerMinutes(skips: number): number {
+  if (skips === 0) return 2
+  if (skips === 1) return 5
+  if (skips === 2) return 10
   return 30
 }

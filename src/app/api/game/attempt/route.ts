@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
 
       // Ativar timer se necessário (progressivo: 2min→5min→10min→30min)
       if (shouldActivateTimer(newWrongAttempts)) {
-        timerEndsAt = await setTimer(user.id, getTimerMinutes(newWrongAttempts))
+        timerEndsAt = await setTimer(user.id, getTimerMinutes(timerSkips))
       }
 
       // Atualizar sessão no Redis

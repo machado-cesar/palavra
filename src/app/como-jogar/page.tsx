@@ -120,32 +120,31 @@ export default function ComoJogarPage() {
       {/* Timer */}
       <Section title="Timer progressivo">
         <p className="text-zinc-300 text-sm leading-relaxed">
-          A partir do <strong className="text-white">2º erro</strong>, um timer de espera é ativado antes da próxima tentativa.
-          Quanto mais erros acumular, maior o tempo:
+          A partir do <strong className="text-white">2º erro</strong>, um timer de espera de 2 minutos é ativado antes da próxima tentativa.
+          O timer sempre começa em 2 minutos — mas cada skip que você der aumenta o tempo do próximo:
         </p>
         <div className="w-full rounded-xl border border-zinc-700 overflow-hidden text-sm">
           <div className="grid grid-cols-2 bg-zinc-800 text-zinc-400 text-xs uppercase tracking-wide px-4 py-2">
-            <span>Erros acumulados</span>
-            <span className="text-right">Espera</span>
+            <span>Skips já usados</span>
+            <span className="text-right">Próximo timer</span>
           </div>
           {[
-            { erros: '2 erros', tempo: '2 minutos' },
-            { erros: '3 erros', tempo: '5 minutos' },
-            { erros: '4 erros', tempo: '10 minutos' },
-            { erros: '5 ou mais', tempo: '30 minutos' },
-          ].map(({ erros, tempo }, i) => (
+            { skips: '0 skips', tempo: '2 minutos' },
+            { skips: '1 skip',  tempo: '5 minutos' },
+            { skips: '2 skips', tempo: '10 minutos' },
+            { skips: '3 ou mais', tempo: '30 minutos' },
+          ].map(({ skips, tempo }, i) => (
             <div
               key={i}
               className="grid grid-cols-2 px-4 py-3 border-t border-zinc-700/50 text-zinc-300"
             >
-              <span>{erros}</span>
+              <span>{skips}</span>
               <span className="text-right text-zinc-400">{tempo}</span>
             </div>
           ))}
         </div>
         <p className="text-zinc-500 text-xs">
-          Você pode pular o timer a qualquer momento com uma penalidade de{' '}
-          <span className="text-white">−100 pontos</span>.
+          Cada skip tem uma penalidade de <span className="text-white">−100 pontos</span>.
         </p>
       </Section>
 
