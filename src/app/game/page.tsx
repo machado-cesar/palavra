@@ -393,6 +393,9 @@ export default function GamePage() {
               🔥 {streak}
             </span>
           )}
+          <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Regras
+          </a>
           <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Ranking
           </a>
