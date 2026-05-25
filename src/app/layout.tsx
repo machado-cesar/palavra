@@ -5,13 +5,34 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
+const BASE_URL = 'https://palavra-xck5.vercel.app'
+const TITLE = 'char[5] — O Wordle em português'
+const DESCRIPTION = 'Adivinhe a palavra de 5 letras. Um novo desafio todo dia.'
+
 export const metadata: Metadata = {
-  title: 'char[5]',
-  description: 'O jogo de palavras em português. Adivinhe a palavra do dia!',
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: TITLE,
+    template: `%s | char[5]`,
+  },
+  description: DESCRIPTION,
+  applicationName: 'char[5]',
+  keywords: ['wordle', 'palavra', 'jogo', 'português', 'char5', 'letras'],
+  authors: [{ name: 'char[5]' }],
+  robots: { index: true, follow: true },
+  themeColor: '#18181b',
   openGraph: {
-    title: 'char[5]',
-    description: 'O jogo de palavras em português. Adivinhe a palavra do dia!',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: BASE_URL,
+    siteName: 'char[5]',
+    locale: 'pt_BR',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: TITLE,
+    description: DESCRIPTION,
   },
 }
 
