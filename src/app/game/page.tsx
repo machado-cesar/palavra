@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import WordGrid from '@/components/game/WordGrid'
 import Keyboard from '@/components/game/Keyboard'
 import ScoreDisplay from '@/components/game/ScoreDisplay'
@@ -36,14 +36,37 @@ export default function GamePage() {
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // ─── Auth ──────────────────────────────────────────────────────────────────
+  // ─── Auth anônimo automático ───────────────────────────────────────────────
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthToken(session?.access_token ?? null)
-      setIsLoading(false)
-    })
+    async function initAuth() {
+      const supabase = getSupabase()
 
+      // Verificar se já tem sessão ativa
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session) {
+        setAuthToken(session.access_token)
+        setIsLoading(false)
+        return
+      }
+
+      // Criar sessão anônima automaticamente
+      const { data, error } = await supabase.auth.signInAnonymously()
+      if (error) {
+        console.error('Erro ao criar sessão anônima:', error)
+        setIsLoading(false)
+        return
+      }
+
+      setAuthToken(data.session?.access_token ?? null)
+      setIsLoading(false)
+    }
+
+    initAuth()
+
+    // Ouvir mudanças de sessão
+    const supabase = getSupabase()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setAuthToken(session?.access_token ?? null)
     })
@@ -63,14 +86,12 @@ export default function GamePage() {
       const json = await res.json()
       if (!json.success) return
 
-      const { canPlay, timerEndsAt: timer, currentSession } = json.data
+      const { timerEndsAt: timer, currentSession } = json.data
 
       if (timer && new Date(timer) > new Date()) {
         setTimerEndsAt(timer)
         setStatus('waiting_timer')
-        if (currentSession) {
-          setCurrentMaxScore(currentSession.maxPossibleScore)
-        }
+        if (currentSession) setCurrentMaxScore(currentSession.maxPossibleScore)
       } else if (currentSession) {
         setStatus('playing')
         setCurrentMaxScore(currentSession.maxPossibleScore)
@@ -95,6 +116,7 @@ export default function GamePage() {
 
     if (!json.success) {
       setMessage(json.error || 'Erro ao iniciar jogo')
+      setTimeout(() => setMessage(''), 3000)
       return
     }
 
@@ -162,7 +184,6 @@ export default function GamePage() {
 
     const { result, score, won, gameOver, timerEndsAt: timer } = json.data
 
-    // Atualizar tentativas
     const newAttempt: Attempt = {
       word: normalized,
       result,
@@ -171,7 +192,6 @@ export default function GamePage() {
     setAttempts(prev => [...prev, newAttempt])
     setCurrentAttempt('')
 
-    // Atualizar estado do teclado
     setKeyboardState(prev => {
       const updated = { ...prev }
       result.forEach(({ letter, status }: { letter: string; status: LetterStatus }) => {
@@ -241,28 +261,14 @@ export default function GamePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-zinc-400">Carregando...</div>
-      </div>
-    )
-  }
-
-  if (!authToken) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
-        <h1 className="text-4xl font-bold">Palavra</h1>
-        <p className="text-zinc-400 text-center">Faça login para jogar</p>
-        <a
-          href="/auth/login"
-          className="px-6 py-3 bg-white text-zinc-900 rounded-xl font-bold hover:bg-zinc-100 transition-colors"
-        >
-          Entrar
-        </a>
+        <div className="text-zinc-400 text-sm animate-pulse">Carregando...</div>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-lg mx-auto">
+
       {/* Header */}
       <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
         <span className="text-2xl font-bold tracking-widest">PALAVRA</span>
@@ -276,7 +282,7 @@ export default function GamePage() {
 
       {/* Mensagem de feedback */}
       {message && (
-        <div className="px-4 py-2 bg-zinc-700 rounded-lg text-sm text-center animate-pulse">
+        <div className="px-4 py-2 bg-zinc-700 rounded-lg text-sm text-center">
           {message}
         </div>
       )}
@@ -300,7 +306,7 @@ export default function GamePage() {
       )}
 
       {/* Teclado */}
-      {(status === 'playing') && (
+      {status === 'playing' && (
         <div className="w-full mt-auto">
           <Keyboard
             keyboardState={keyboardState}
@@ -311,7 +317,7 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Estado inicial */}
+      {/* Botão iniciar */}
       {status === 'idle' && (
         <button
           onClick={startGame}
