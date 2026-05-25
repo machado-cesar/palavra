@@ -6,7 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 const BASE_URL = 'https://palavra-xck5.vercel.app'
-const TITLE = 'char[5] — O Wordle em português'
+const TITLE = 'char[5] — Adivinhe a palavra do dia'
 const DESCRIPTION = 'Adivinhe a palavra de 5 letras. Um novo desafio todo dia.'
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   applicationName: 'char[5]',
-  keywords: ['wordle', 'palavra', 'jogo', 'português', 'char5', 'letras'],
+  keywords: ['palavra', 'jogo', 'português', 'char5', 'letras', 'adivinhar'],
   authors: [{ name: 'char[5]' }],
   robots: { index: true, follow: true },
   themeColor: '#18181b',

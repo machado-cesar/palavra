@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'char[5] — O Wordle em português'
+export const alt = 'char[5] — Adivinhe a palavra do dia'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -77,7 +77,7 @@ export default function Image() {
             textTransform: 'uppercase',
           }}
         >
-          O Wordle em Português
+          Adivinhe a palavra do dia
         </div>
 
         {/* Descrição */}
