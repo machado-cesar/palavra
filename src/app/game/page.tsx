@@ -10,8 +10,6 @@ import SkipModal from '@/components/game/SkipModal'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
 
-// ─── Helpers de evento GA ─────────────────────────────────────────────────────
-
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
 }
@@ -19,8 +17,6 @@ declare global {
 function trackEvent(name: string, params?: Record<string, unknown>) {
   window.gtag?.('event', name, params)
 }
-
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function GamePage() {
   const [status, setStatus] = useState<GameStatus>('idle')
@@ -32,6 +28,7 @@ export default function GamePage() {
   const [skips, setSkips] = useState(0)
   const [showSkipModal, setShowSkipModal] = useState(false)
   const [isSkipping, setIsSkipping] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)  // bloqueia duplo envio
   const [message, setMessage] = useState('')
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -41,31 +38,24 @@ export default function GamePage() {
   useEffect(() => {
     async function initAuth() {
       const supabase = getSupabase()
-
-      // Verificar se já tem sessão ativa
       const { data: { session } } = await supabase.auth.getSession()
 
       if (session) {
         setAuthToken(session.access_token)
-        setIsLoading(false)
         return
       }
 
-      // Criar sessão anônima automaticamente
       const { data, error } = await supabase.auth.signInAnonymously()
       if (error) {
         console.error('Erro ao criar sessão anônima:', error)
         setIsLoading(false)
         return
       }
-
       setAuthToken(data.session?.access_token ?? null)
-      setIsLoading(false)
     }
 
     initAuth()
 
-    // Ouvir mudanças de sessão
     const supabase = getSupabase()
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setAuthToken(session?.access_token ?? null)
@@ -74,45 +64,72 @@ export default function GamePage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ─── Verificar status do jogo ao carregar ──────────────────────────────────
+  // ─── Verificar status e iniciar automaticamente ────────────────────────────
 
   useEffect(() => {
     if (!authToken) return
 
-    async function fetchStatus() {
+    async function fetchStatusAndStart() {
       const res = await fetch('/api/game/status', {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       const json = await res.json()
+      setIsLoading(false)
+
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession } = json.data
+      const { timerEndsAt: timer, currentSession, completedSession } = json.data
 
+      // Jogo já concluído hoje — reconstruir estado do board
+      if (completedSession) {
+        const rebuiltKeyboard: Record<string, LetterStatus> = {}
+        for (const attempt of completedSession.attempts) {
+          for (const { letter, status } of attempt.result) {
+            const priority: Record<LetterStatus, number> = { correct: 3, present: 2, absent: 1, empty: 0 }
+            if (!rebuiltKeyboard[letter] || priority[status as LetterStatus] > priority[rebuiltKeyboard[letter]]) {
+              rebuiltKeyboard[letter] = status as LetterStatus
+            }
+          }
+        }
+        setAttempts(completedSession.attempts)
+        setKeyboardState(rebuiltKeyboard)
+        setCurrentMaxScore(completedSession.score || completedSession.maxPossibleScore)
+        setSkips(completedSession.timerSkips)
+        setStatus(completedSession.won ? 'won' : 'lost')
+        setMessage(completedSession.won ? `Você acertou! +${completedSession.score} pts` : 'Tente novamente amanhã.')
+        return
+      }
+
+      // Timer ativo (jogo em pausa)
       if (timer && new Date(timer) > new Date()) {
         setTimerEndsAt(timer)
         setStatus('waiting_timer')
         if (currentSession) setCurrentMaxScore(currentSession.maxPossibleScore)
-      } else if (currentSession) {
+        return
+      }
+
+      // Sessão em andamento (retornou no meio do jogo)
+      if (currentSession) {
         setStatus('playing')
         setCurrentMaxScore(currentSession.maxPossibleScore)
+        return
       }
+
+      // Nenhum estado ativo — iniciar jogo automaticamente
+      await startGame(authToken!)
     }
 
-    fetchStatus()
+    fetchStatusAndStart()
   }, [authToken])
 
   // ─── Iniciar jogo ──────────────────────────────────────────────────────────
 
-  async function startGame() {
-    if (!authToken) return
-    setIsLoading(true)
-
+  async function startGame(token: string) {
     const res = await fetch('/api/game/start', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` }
+      headers: { Authorization: `Bearer ${token}` }
     })
     const json = await res.json()
-    setIsLoading(false)
 
     if (!json.success) {
       setMessage(json.error || 'Erro ao iniciar jogo')
@@ -133,7 +150,7 @@ export default function GamePage() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (status !== 'playing') return
+      if (status !== 'playing' || isSubmitting) return
       if (e.key === 'Enter') handleEnter()
       else if (e.key === 'Backspace') handleBackspace()
       else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleKey(e.key.toUpperCase())
@@ -141,14 +158,10 @@ export default function GamePage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [status, currentAttempt, attempts])
-
-  // ─── Handlers de input ─────────────────────────────────────────────────────
+  }, [status, currentAttempt, attempts, isSubmitting])
 
   function handleKey(key: string) {
-    if (currentAttempt.length < 5) {
-      setCurrentAttempt(prev => prev + key)
-    }
+    if (currentAttempt.length < 5) setCurrentAttempt(prev => prev + key)
   }
 
   function handleBackspace() {
@@ -162,8 +175,9 @@ export default function GamePage() {
       return
     }
 
-    if (!authToken) return
+    if (!authToken || isSubmitting) return
 
+    setIsSubmitting(true)
     const normalized = normalizeWord(currentAttempt)
 
     const res = await fetch('/api/game/attempt', {
@@ -176,6 +190,8 @@ export default function GamePage() {
     })
 
     const json = await res.json()
+    setIsSubmitting(false)
+
     if (!json.success) {
       setMessage(json.error || 'Erro ao enviar tentativa')
       setTimeout(() => setMessage(''), 2000)
@@ -266,6 +282,8 @@ export default function GamePage() {
     )
   }
 
+  const gameOver = status === 'won' || status === 'lost'
+
   return (
     <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-lg mx-auto">
 
@@ -287,11 +305,16 @@ export default function GamePage() {
         </div>
       )}
 
+      {/* Indicador de envio */}
+      {isSubmitting && (
+        <div className="text-zinc-500 text-xs animate-pulse">Verificando...</div>
+      )}
+
       {/* Grid */}
       <WordGrid
         attempts={attempts}
         currentAttempt={currentAttempt}
-        gameOver={status === 'won' || status === 'lost'}
+        gameOver={gameOver}
       />
 
       {/* Timer */}
@@ -305,7 +328,7 @@ export default function GamePage() {
         />
       )}
 
-      {/* Teclado */}
+      {/* Teclado — desabilitado durante submissão ou jogo encerrado */}
       {status === 'playing' && (
         <div className="w-full mt-auto">
           <Keyboard
@@ -313,18 +336,9 @@ export default function GamePage() {
             onKey={handleKey}
             onEnter={handleEnter}
             onBackspace={handleBackspace}
+            disabled={isSubmitting}
           />
         </div>
-      )}
-
-      {/* Botão iniciar */}
-      {status === 'idle' && (
-        <button
-          onClick={startGame}
-          className="px-8 py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl text-lg transition-colors"
-        >
-          Jogar
-        </button>
       )}
 
       {/* Modal de skip */}
