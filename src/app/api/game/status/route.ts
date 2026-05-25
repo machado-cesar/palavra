@@ -17,6 +17,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    // Buscar streak do usuário
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('current_streak')
+      .eq('id', user.id)
+      .single()
+    const streak = userProfile?.current_streak ?? 0
+
     // Buscar palavra do dia
     const today = new Date().toISOString().split('T')[0]
     const { data: word } = await supabaseAdmin
@@ -46,6 +54,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: {
+            streak,
             canPlay: false,
             timerEndsAt: null,
             currentSession: null,
@@ -85,6 +94,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        streak,
         canPlay: !timerEndsAt || new Date(timerEndsAt) <= new Date(),
         timerEndsAt: timerEndsAt,
         completedSession: null,

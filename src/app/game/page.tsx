@@ -33,6 +33,7 @@ export default function GamePage() {
   const [message, setMessage] = useState('')
   const [correctWord, setCorrectWord] = useState<string | undefined>()
   const [showResult, setShowResult] = useState(false)
+  const [streak, setStreak] = useState(0)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -81,7 +82,8 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession, completedSession } = json.data
+      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak } = json.data
+      if (userStreak) setStreak(userStreak)
 
       // Jogo já concluído hoje — reconstruir estado do board
       if (completedSession) {
@@ -251,6 +253,7 @@ export default function GamePage() {
       setCurrentMaxScore(score)
       setStatus('won')
       setShowResult(true)
+      if (skips === 0) setStreak(prev => prev + 1)  // reflete o increment_streak do servidor
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
@@ -317,9 +320,17 @@ export default function GamePage() {
       {/* Header */}
       <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
         <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
-        <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
-          Ranking
-        </a>
+
+        <div className="flex items-center gap-4">
+          {streak > 0 && (
+            <span className="text-sm font-semibold text-orange-400 tabular-nums">
+              🔥 {streak}
+            </span>
+          )}
+          <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Ranking
+          </a>
+        </div>
       </header>
 
       {/* Pontuação */}
