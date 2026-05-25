@@ -60,6 +60,20 @@ export async function GET(request: NextRequest) {
     // Verificar sessão ativa em andamento
     const activeSession = await getActiveSession(user.id)
 
+    // Buscar tentativas já realizadas no banco
+    let existingAttempts: unknown[] = []
+    let timerSkips = 0
+    if (activeSession) {
+      const { data: dbSession } = await supabaseAdmin
+        .from('game_sessions')
+        .select('attempts, timer_skips')
+        .eq('id', activeSession.sessionId)
+        .single()
+
+      existingAttempts = dbSession?.attempts || []
+      timerSkips = dbSession?.timer_skips || 0
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -73,9 +87,9 @@ export async function GET(request: NextRequest) {
           startedAt: activeSession.startedAt,
           score: 0,
           maxPossibleScore: activeSession.currentMaxScore,
-          timerSkips: 0,
+          timerSkips: timerSkips,
           tokenUsed: false,
-          attempts: [],
+          attempts: existingAttempts,
         } : null,
       },
     })

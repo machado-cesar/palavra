@@ -110,6 +110,21 @@ export default function GamePage() {
 
       // Sessão em andamento (retornou no meio do jogo)
       if (currentSession) {
+        // Reconstruir tentativas e teclado a partir do banco
+        if (currentSession.attempts?.length > 0) {
+          const rebuiltKeyboard: Record<string, LetterStatus> = {}
+          for (const attempt of currentSession.attempts) {
+            for (const { letter, status } of attempt.result) {
+              const priority: Record<LetterStatus, number> = { correct: 3, present: 2, absent: 1, empty: 0 }
+              if (!rebuiltKeyboard[letter] || priority[status as LetterStatus] > priority[rebuiltKeyboard[letter]]) {
+                rebuiltKeyboard[letter] = status as LetterStatus
+              }
+            }
+          }
+          setAttempts(currentSession.attempts)
+          setKeyboardState(rebuiltKeyboard)
+          setSkips(currentSession.timerSkips || 0)
+        }
         setStatus('playing')
         setCurrentMaxScore(currentSession.maxPossibleScore)
         return
