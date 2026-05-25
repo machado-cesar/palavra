@@ -39,7 +39,7 @@ function useNextWordCountdown(): string {
 }
 
 // Gera o grid de emojis para compartilhar
-function buildShareText(attempts: Attempt[], won: boolean, score: number): string {
+function buildShareText(attempts: Attempt[], won: boolean, score: number, streak: number): string {
   const grid = attempts
     .map(a =>
       a.result
@@ -56,8 +56,9 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number): strin
   const result = won
     ? `✅ ${attempts.length}/6 tentativa${attempts.length > 1 ? 's' : ''} · +${score} pts`
     : `❌ Não acertei hoje`
+  const streakLine = streak > 0 ? `\n🔥 ${streak} dia${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''}` : ''
 
-  return `char[5] — ${today}\n${result}\n\n${grid}\n\nhttps://palavra-xck5.vercel.app`
+  return `char[5] — ${today}\n${result}${streakLine}\n\n${grid}\n\nhttps://palavra-xck5.vercel.app`
 }
 
 export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, onClose }: ResultScreenProps) {
@@ -74,7 +75,7 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
   const wrongAttempts = won ? attempts.length - 1 : attempts.length
 
   async function handleShare() {
-    const text = buildShareText(attempts, won, score)
+    const text = buildShareText(attempts, won, score, streak)
     try {
       if (navigator.share) {
         await navigator.share({ text })
