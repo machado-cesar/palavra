@@ -17,13 +17,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    // Buscar streak do usuário
-    const { data: userProfile } = await supabaseAdmin
+    // Buscar perfil do usuário — criar se não existir (trigger falha para anônimos sem email)
+    let { data: userProfile } = await supabaseAdmin
       .from('users')
-      .select('current_streak')
+      .select('current_streak, username_confirmed, username')
       .eq('id', user.id)
       .single()
+
+    if (!userProfile) {
+      const generated = 'Jogador' + Math.floor(Math.random() * 9000 + 1000)
+      const { data: created } = await supabaseAdmin
+        .from('users')
+        .upsert({ id: user.id, username: generated })
+        .select('current_streak, username_confirmed, username')
+        .single()
+      userProfile = created
+    }
+
     const streak = userProfile?.current_streak ?? 0
+    const usernameConfirmed = userProfile?.username_confirmed ?? false
 
     // Buscar palavra do dia
     const today = new Date().toISOString().split('T')[0]
@@ -55,6 +67,7 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             streak,
+            usernameConfirmed,
             canPlay: false,
             timerEndsAt: null,
             currentSession: null,
@@ -95,6 +108,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         streak,
+        usernameConfirmed,
         canPlay: !timerEndsAt || new Date(timerEndsAt) <= new Date(),
         timerEndsAt: timerEndsAt,
         completedSession: null,

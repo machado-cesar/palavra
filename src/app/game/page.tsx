@@ -8,6 +8,7 @@ import ScoreDisplay from '@/components/game/ScoreDisplay'
 import TimerBar from '@/components/game/TimerBar'
 import SkipModal from '@/components/game/SkipModal'
 import ResultScreen from '@/components/game/ResultScreen'
+import UsernameModal from '@/components/game/UsernameModal'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
 
@@ -33,6 +34,8 @@ export default function GamePage() {
   const [message, setMessage] = useState('')
   const [correctWord, setCorrectWord] = useState<string | undefined>()
   const [showResult, setShowResult] = useState(false)
+  const [showUsernameModal, setShowUsernameModal] = useState(false)
+  const [usernameConfirmed, setUsernameConfirmed] = useState(false)
   const [streak, setStreak] = useState(0)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -82,8 +85,9 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak } = json.data
+      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed } = json.data
       if (userStreak) setStreak(userStreak)
+      if (confirmed) setUsernameConfirmed(true)
 
       // Jogo já concluído hoje — reconstruir estado do board
       if (completedSession) {
@@ -252,13 +256,15 @@ export default function GamePage() {
     if (won) {
       setCurrentMaxScore(score)
       setStatus('won')
-      setShowResult(true)
-      if (skips === 0) setStreak(prev => prev + 1)  // reflete o increment_streak do servidor
+      if (skips === 0) setStreak(prev => prev + 1)
+      if (!usernameConfirmed) setShowUsernameModal(true)
+      else setShowResult(true)
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
-      setShowResult(true)
+      if (!usernameConfirmed) setShowUsernameModal(true)
+      else setShowResult(true)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
     } else {
       setCurrentMaxScore(score)
@@ -404,6 +410,22 @@ export default function GamePage() {
           onConfirm={handleSkipConfirm}
           onCancel={() => setShowSkipModal(false)}
           isLoading={isSkipping}
+        />
+      )}
+
+      {/* Modal de apelido — aparece após primeiro jogo */}
+      {showUsernameModal && authToken && (
+        <UsernameModal
+          authToken={authToken}
+          onSaved={() => {
+            setUsernameConfirmed(true)
+            setShowUsernameModal(false)
+            setShowResult(true)
+          }}
+          onSkip={() => {
+            setShowUsernameModal(false)
+            setShowResult(true)
+          }}
         />
       )}
     </div>
