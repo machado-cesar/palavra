@@ -19,8 +19,8 @@ const ROWS = [
 const statusColors: Record<LetterStatus, string> = {
   correct: 'bg-green-600 text-white',
   present: 'bg-yellow-500 text-white',
-  absent:  'bg-zinc-600 text-white',
-  empty:   'bg-zinc-700 text-white hover:bg-zinc-600',
+  absent:  'bg-zinc-900 text-zinc-500',
+  empty:   'bg-zinc-600 text-white hover:bg-zinc-500',
 }
 
 export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, disabled }: KeyboardProps) {
