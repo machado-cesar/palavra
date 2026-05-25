@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedGuess = normalizeWord(guess)
-    const answer = wordData.word.trim().toUpperCase()
+    const answer = normalizeWord(wordData.word.trim())
     const result = evaluateAttempt(normalizedGuess, answer)
     const won = normalizedGuess === answer
 
