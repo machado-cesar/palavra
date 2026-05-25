@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY!
 
 // Cliente para uso no browser (componentes e client-side)
-export const supabase = createClient(supabaseUrl, supabasePublishableKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Cliente com privilégios de admin — usar apenas em API Routes (server-side)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseSecretKey, {
