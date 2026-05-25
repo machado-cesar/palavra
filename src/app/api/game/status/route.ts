@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // Buscar perfil do usuário — criar se não existir (trigger falha para anônimos sem email)
     let { data: userProfile } = await supabaseAdmin
       .from('users')
-      .select('current_streak, username_confirmed, username')
+      .select('current_streak, username_confirmed, username, tokens, last_played_at')
       .eq('id', user.id)
       .single()
 
@@ -29,13 +29,24 @@ export async function GET(request: NextRequest) {
       const { data: created } = await supabaseAdmin
         .from('users')
         .upsert({ id: user.id, username: generated })
-        .select('current_streak, username_confirmed, username')
+        .select('current_streak, username_confirmed, username, tokens, last_played_at')
         .single()
       userProfile = created
     }
 
     const streak = userProfile?.current_streak ?? 0
     const usernameConfirmed = userProfile?.username_confirmed ?? false
+    const tokens = userProfile?.tokens ?? 0
+
+    // Detectar se o streak está em risco (faltou dia(s) e tem tokens disponíveis)
+    const lastPlayedAt = userProfile?.last_played_at ?? null
+    let streakAtRisk = false
+    if (lastPlayedAt && streak > 0 && tokens > 0) {
+      const lastDate = new Date(lastPlayedAt)
+      const todayDate = new Date(new Date().toISOString().split('T')[0])
+      const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / 86400000)
+      if (diffDays >= 2) streakAtRisk = true
+    }
 
     // Buscar palavra do dia
     const today = new Date().toISOString().split('T')[0]
@@ -56,7 +67,6 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (completedSession) {
-        // Buscar a palavra para revelar se o jogador perdeu
         const { data: wordData } = await supabaseAdmin
           .from('words')
           .select('word')
@@ -67,7 +77,9 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             streak,
+            tokens,
             usernameConfirmed,
+            streakAtRisk: false,
             canPlay: false,
             timerEndsAt: null,
             currentSession: null,
@@ -108,7 +120,9 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         streak,
+        tokens,
         usernameConfirmed,
+        streakAtRisk,
         canPlay: !timerEndsAt || new Date(timerEndsAt) <= new Date(),
         timerEndsAt: timerEndsAt,
         completedSession: null,

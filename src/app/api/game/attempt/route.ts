@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
 
     let finalScore = 0
     let timerEndsAt: string | null = null
+    let streakSaved = false
+    let tokenEarned = false
 
     if (won || gameOver) {
       // Jogo terminou — calcular pontuação final
@@ -117,14 +119,52 @@ export async function POST(request: NextRequest) {
         await updateRanking(user.id, finalScore)
       }
 
-      // Atualizar streak do usuário
+      // Atualizar streak do usuário (com lógica de tokens)
       if (won && timerSkips === 0) {
+        // Vitória perfeita — incrementa streak
         await supabaseAdmin.rpc('increment_streak', { user_id: user.id })
-      } else if (gameOver || (won && timerSkips > 0)) {
-        await supabaseAdmin
+
+        // Verificar se ganhou um token (a cada 3 dias de streak)
+        const { data: updatedUser } = await supabaseAdmin
           .from('users')
-          .update({ current_streak: 0, last_played_at: today })
+          .select('current_streak, tokens')
           .eq('id', user.id)
+          .single()
+
+        const newStreak = updatedUser?.current_streak ?? 0
+        if (newStreak > 0 && newStreak % 3 === 0) {
+          const newTokens = Math.min((updatedUser?.tokens ?? 0) + 1, 5)
+          await supabaseAdmin
+            .from('users')
+            .update({ tokens: newTokens })
+            .eq('id', user.id)
+          tokenEarned = true
+        }
+      } else {
+        // Derrota ou vitória com skips — tentar gastar token para preservar streak
+        const { data: userData } = await supabaseAdmin
+          .from('users')
+          .select('current_streak, tokens')
+          .eq('id', user.id)
+          .single()
+
+        const currentStreak = userData?.current_streak ?? 0
+        const currentTokens = userData?.tokens ?? 0
+
+        if (currentTokens > 0 && currentStreak > 0) {
+          // Gasta token, preserva streak
+          await supabaseAdmin
+            .from('users')
+            .update({ tokens: currentTokens - 1, last_played_at: today })
+            .eq('id', user.id)
+          streakSaved = true
+        } else {
+          // Sem tokens — reseta streak
+          await supabaseAdmin
+            .from('users')
+            .update({ current_streak: 0, last_played_at: today })
+            .eq('id', user.id)
+        }
       }
 
       // Limpar sessão ativa do Redis
@@ -159,8 +199,9 @@ export async function POST(request: NextRequest) {
       won,
       gameOver,
       timerEndsAt,
-      // Revelar a palavra apenas quando o jogador perde
       correctWord: gameOver && !won ? answer : undefined,
+      streakSaved: streakSaved || undefined,
+      tokenEarned: tokenEarned || undefined,
     }
 
     return NextResponse.json({ success: true, data: response })

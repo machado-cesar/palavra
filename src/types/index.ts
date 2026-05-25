@@ -90,6 +90,8 @@ export interface AttemptResponse {
   gameOver: boolean
   timerEndsAt: string | null
   correctWord?: string   // revelada apenas quando gameOver && !won
+  streakSaved?: boolean  // token foi gasto automaticamente para preservar o streak
+  tokenEarned?: boolean  // ganhou um token novo nesse jogo (streak múltiplo de 3)
 }
 
 export interface SkipResponse {

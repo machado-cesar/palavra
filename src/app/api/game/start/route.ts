@@ -27,6 +27,27 @@ export async function POST(request: NextRequest) {
       }, { status: 429 })
     }
 
+    // Verificar se streak precisa ser resetado (jogador faltou dias sem usar token)
+    const today = new Date().toISOString().split('T')[0]
+    const { data: userProfile } = await supabaseAdmin
+      .from('users')
+      .select('current_streak, last_played_at')
+      .eq('id', user.id)
+      .single()
+
+    if (userProfile?.current_streak > 0 && userProfile?.last_played_at) {
+      const lastPlayed = new Date(userProfile.last_played_at)
+      const todayDate = new Date(today)
+      const diffDays = Math.round((todayDate.getTime() - lastPlayed.getTime()) / 86400000)
+      if (diffDays >= 2) {
+        // Faltou pelo menos um dia sem restaurar — reseta streak
+        await supabaseAdmin
+          .from('users')
+          .update({ current_streak: 0 })
+          .eq('id', user.id)
+      }
+    }
+
     // Verificar se já tem sessão ativa
     const existingSession = await getActiveSession(user.id)
     if (existingSession) {
@@ -37,7 +58,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar a palavra do dia
-    const today = new Date().toISOString().split('T')[0]
     const { data: word, error: wordError } = await supabaseAdmin
       .from('words')
       .select('id, word')

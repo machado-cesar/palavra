@@ -37,6 +37,10 @@ export default function GamePage() {
   const [showUsernameModal, setShowUsernameModal] = useState(false)
   const [usernameConfirmed, setUsernameConfirmed] = useState(false)
   const [streak, setStreak] = useState(0)
+  const [tokens, setTokens] = useState(0)
+  const [showStreakRestorePrompt, setShowStreakRestorePrompt] = useState(false)
+  const [streakAtRiskInfo, setStreakAtRiskInfo] = useState<{ streak: number; tokens: number } | null>(null)
+  const [isRestoringStreak, setIsRestoringStreak] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -85,9 +89,10 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed } = json.data
+      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk } = json.data
       if (userStreak) setStreak(userStreak)
       if (confirmed) setUsernameConfirmed(true)
+      if (userTokens) setTokens(userTokens)
 
       // Jogo já concluído hoje — reconstruir estado do board
       if (completedSession) {
@@ -144,6 +149,13 @@ export default function GamePage() {
       if (currentSession) {
         restoreSessionState(currentSession)
         setStatus('playing')
+        return
+      }
+
+      // Streak em risco — mostrar prompt antes de iniciar
+      if (streakAtRisk && userStreak > 0 && userTokens > 0) {
+        setStreakAtRiskInfo({ streak: userStreak, tokens: userTokens })
+        setShowStreakRestorePrompt(true)
         return
       }
 
@@ -257,12 +269,22 @@ export default function GamePage() {
       setCurrentMaxScore(score)
       setStatus('won')
       if (skips === 0) setStreak(prev => prev + 1)
+      if (json.data.tokenEarned) {
+        setTokens(prev => Math.min(prev + 1, 5))
+        setMessage('🪙 +1 Token ganho pela sequência!')
+        setTimeout(() => setMessage(''), 3000)
+      }
       if (!usernameConfirmed) setShowUsernameModal(true)
       else setShowResult(true)
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
+      if (json.data.streakSaved) {
+        setTokens(prev => prev - 1)
+        setMessage('🛡️ Token usado — sua sequência foi protegida!')
+        setTimeout(() => setMessage(''), 3000)
+      }
       if (!usernameConfirmed) setShowUsernameModal(true)
       else setShowResult(true)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
@@ -303,6 +325,39 @@ export default function GamePage() {
     trackEvent('timer_skipped', { penalty: penaltyApplied })
   }
 
+  // ─── Restauração de streak ─────────────────────────────────────────────────
+
+  async function handleRestoreStreak() {
+    if (!authToken) return
+    setIsRestoringStreak(true)
+
+    const res = await fetch('/api/game/restore-streak', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${authToken}` },
+    })
+    const json = await res.json()
+    setIsRestoringStreak(false)
+
+    if (!json.success) {
+      setMessage(json.error || 'Erro ao restaurar streak')
+      setTimeout(() => setMessage(''), 3000)
+      setShowStreakRestorePrompt(false)
+      await startGame(authToken)
+      return
+    }
+
+    setTokens(json.data.tokensLeft)
+    setShowStreakRestorePrompt(false)
+    setStreakAtRiskInfo(null)
+    await startGame(authToken)
+  }
+
+  async function handleSkipStreakRestore() {
+    setShowStreakRestorePrompt(false)
+    setStreakAtRiskInfo(null)
+    await startGame(authToken!)
+  }
+
   const handleTimerExpire = useCallback(() => {
     setTimerEndsAt(null)
     setStatus('playing')
@@ -327,7 +382,12 @@ export default function GamePage() {
       <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
         <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {tokens > 0 && (
+            <span className="text-sm font-semibold text-zinc-300 tabular-nums" title="Tokens de proteção de streak">
+              🛡️ {tokens}
+            </span>
+          )}
           {streak > 0 && (
             <span className="text-sm font-semibold text-orange-400 tabular-nums">
               🔥 {streak}
@@ -411,6 +471,44 @@ export default function GamePage() {
           onCancel={() => setShowSkipModal(false)}
           isLoading={isSkipping}
         />
+      )}
+
+      {/* Modal de restauração de streak */}
+      {showStreakRestorePrompt && streakAtRiskInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-zinc-800 border border-zinc-700 rounded-2xl p-6 space-y-5 shadow-2xl">
+            <div className="text-center space-y-1">
+              <div className="text-3xl">🛡️</div>
+              <h2 className="text-lg font-bold">Sequência em risco!</h2>
+              <p className="text-zinc-400 text-sm">
+                Você não jogou ontem. Quer usar um token para manter sua sequência de{' '}
+                <span className="text-orange-400 font-semibold">{streakAtRiskInfo.streak} dias</span>?
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleRestoreStreak}
+                disabled={isRestoringStreak}
+                className="w-full py-2.5 text-sm font-semibold bg-white text-zinc-900
+                  rounded-lg hover:bg-zinc-100 active:scale-95 transition-all
+                  disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRestoringStreak
+                  ? 'Restaurando…'
+                  : `Usar 🛡️ token (${streakAtRiskInfo.tokens} disponível${streakAtRiskInfo.tokens > 1 ? 'is' : ''})`
+                }
+              </button>
+              <button
+                onClick={handleSkipStreakRestore}
+                disabled={isRestoringStreak}
+                className="w-full py-2 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                Jogar assim mesmo (sequência zera)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal de apelido — aparece após primeiro jogo */}
