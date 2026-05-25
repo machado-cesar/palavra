@@ -325,9 +325,13 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Indicador de envio */}
+      {/* Toast flutuante de envio — não desloca o layout */}
       {isSubmitting && (
-        <div className="text-zinc-500 text-xs animate-pulse">Verificando...</div>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50
+          px-4 py-2 bg-zinc-800 border border-zinc-600 rounded-full shadow-lg
+          text-zinc-300 text-xs font-medium animate-pulse pointer-events-none">
+          Verificando…
+        </div>
       )}
 
       {/* Grid */}
