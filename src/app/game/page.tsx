@@ -32,6 +32,7 @@ export default function GamePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)  // bloqueia duplo envio
   const [message, setMessage] = useState('')
   const [correctWord, setCorrectWord] = useState<string | undefined>()
+  const [showResult, setShowResult] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -101,6 +102,7 @@ export default function GamePage() {
         if (!completedSession.won && completedSession.correctWord) {
           setCorrectWord(completedSession.correctWord)
         }
+        setShowResult(true)
         return
       }
 
@@ -248,10 +250,12 @@ export default function GamePage() {
     if (won) {
       setCurrentMaxScore(score)
       setStatus('won')
+      setShowResult(true)
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
+      setShowResult(true)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
     } else {
       setCurrentMaxScore(score)
@@ -312,7 +316,7 @@ export default function GamePage() {
 
       {/* Header */}
       <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
-        <span className="text-2xl font-bold tracking-widest">PALAVRA</span>
+        <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
         <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
           Ranking
         </a>
@@ -344,14 +348,15 @@ export default function GamePage() {
         gameOver={gameOver}
       />
 
-      {/* Tela de resultado */}
-      {gameOver && (
+      {/* Modal de resultado */}
+      {gameOver && showResult && (
         <ResultScreen
           won={status === 'won'}
           score={currentMaxScore}
           skips={skips}
           attempts={attempts}
           correctWord={correctWord}
+          onClose={() => setShowResult(false)}
         />
       )}
 

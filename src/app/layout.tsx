@@ -6,10 +6,10 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Palavra',
+  title: 'char[5]',
   description: 'O jogo de palavras em português. Adivinhe a palavra do dia!',
   openGraph: {
-    title: 'Palavra',
+    title: 'char[5]',
     description: 'O jogo de palavras em português. Adivinhe a palavra do dia!',
     type: 'website',
   },

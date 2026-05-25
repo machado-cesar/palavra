@@ -9,6 +9,7 @@ interface ResultScreenProps {
   skips: number
   attempts: Attempt[]
   correctWord?: string   // revelada apenas quando perdeu
+  onClose: () => void
 }
 
 // Conta regressiva até às 03:00 UTC (meia-noite de Brasília)
@@ -55,10 +56,10 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number): strin
     ? `✅ ${attempts.length}/6 tentativa${attempts.length > 1 ? 's' : ''} · +${score} pts`
     : `❌ Não acertei hoje`
 
-  return `PALAVRA — ${today}\n${result}\n\n${grid}\n\nhttps://palavra-xck5.vercel.app`
+  return `char[5] — ${today}\n${result}\n\n${grid}\n\nhttps://palavra-xck5.vercel.app`
 }
 
-export default function ResultScreen({ won, score, skips, attempts, correctWord }: ResultScreenProps) {
+export default function ResultScreen({ won, score, skips, attempts, correctWord, onClose }: ResultScreenProps) {
   const countdown = useNextWordCountdown()
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -98,8 +99,8 @@ export default function ResultScreen({ won, score, skips, attempts, correctWord 
         transition-all duration-400 ease-out
         ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
-      {/* Overlay escuro */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      {/* Overlay escuro — clique fora fecha */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Card */}
       <div
@@ -107,6 +108,16 @@ export default function ResultScreen({ won, score, skips, attempts, correctWord 
           ${visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
       >
       <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 space-y-4 shadow-2xl">
+
+        {/* Botão fechar */}
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center
+            rounded-full text-zinc-500 hover:text-white hover:bg-zinc-700 transition-colors"
+          aria-label="Fechar"
+        >
+          ✕
+        </button>
 
         {/* Título */}
         <div className="text-center">
