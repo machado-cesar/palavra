@@ -8,6 +8,7 @@ interface ResultScreenProps {
   score: number
   skips: number
   attempts: Attempt[]
+  streak: number
   correctWord?: string   // revelada apenas quando perdeu
   onClose: () => void
 }
@@ -59,7 +60,7 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number): strin
   return `char[5] — ${today}\n${result}\n\n${grid}\n\nhttps://palavra-xck5.vercel.app`
 }
 
-export default function ResultScreen({ won, score, skips, attempts, correctWord, onClose }: ResultScreenProps) {
+export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, onClose }: ResultScreenProps) {
   const countdown = useNextWordCountdown()
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -165,6 +166,19 @@ export default function ResultScreen({ won, score, skips, attempts, correctWord,
             <div className="border-t border-zinc-600 pt-2 flex justify-between items-center">
               <span className="font-semibold">Total</span>
               <span className="text-2xl font-bold text-green-400">+{score}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Streak */}
+        {streak > 0 && (
+          <div className="flex items-center justify-center gap-2 py-1">
+            <span className="text-2xl">🔥</span>
+            <div>
+              <span className="text-xl font-bold text-orange-400">{streak}</span>
+              <span className="text-zinc-400 text-sm ml-1">
+                dia{streak > 1 ? 's' : ''} seguido{streak > 1 ? 's' : ''}
+              </span>
             </div>
           </div>
         )}

@@ -366,6 +366,7 @@ export default function GamePage() {
           score={currentMaxScore}
           skips={skips}
           attempts={attempts}
+          streak={streak}
           correctWord={correctWord}
           onClose={() => setShowResult(false)}
         />
