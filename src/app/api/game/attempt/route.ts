@@ -159,6 +159,8 @@ export async function POST(request: NextRequest) {
       won,
       gameOver,
       timerEndsAt,
+      // Revelar a palavra apenas quando o jogador perde
+      correctWord: gameOver && !won ? answer : undefined,
     }
 
     return NextResponse.json({ success: true, data: response })

@@ -7,6 +7,7 @@ import Keyboard from '@/components/game/Keyboard'
 import ScoreDisplay from '@/components/game/ScoreDisplay'
 import TimerBar from '@/components/game/TimerBar'
 import SkipModal from '@/components/game/SkipModal'
+import ResultScreen from '@/components/game/ResultScreen'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
 
@@ -30,6 +31,7 @@ export default function GamePage() {
   const [isSkipping, setIsSkipping] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)  // bloqueia duplo envio
   const [message, setMessage] = useState('')
+  const [correctWord, setCorrectWord] = useState<string | undefined>()
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -96,7 +98,9 @@ export default function GamePage() {
         setCurrentMaxScore(completedSession.score || completedSession.maxPossibleScore)
         setSkips(completedSession.timerSkips)
         setStatus(completedSession.won ? 'won' : 'lost')
-        setMessage(completedSession.won ? `Você acertou! +${completedSession.score} pts` : 'Tente novamente amanhã.')
+        if (!completedSession.won && completedSession.correctWord) {
+          setCorrectWord(completedSession.correctWord)
+        }
         return
       }
 
@@ -244,11 +248,10 @@ export default function GamePage() {
     if (won) {
       setCurrentMaxScore(score)
       setStatus('won')
-      setMessage(`Parabéns! +${score} pontos`)
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
-      setMessage('Que pena! Tente novamente amanhã.')
+      if (json.data.correctWord) setCorrectWord(json.data.correctWord)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
     } else {
       setCurrentMaxScore(score)
@@ -315,8 +318,10 @@ export default function GamePage() {
         </a>
       </header>
 
-      {/* Pontuação */}
-      <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
+      {/* Pontuação — esconde quando jogo encerrado (substituída pelo breakdown na ResultScreen) */}
+      {!gameOver && (
+        <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
+      )}
 
       {/* Mensagem de feedback */}
       {message && (
@@ -340,6 +345,17 @@ export default function GamePage() {
         currentAttempt={currentAttempt}
         gameOver={gameOver}
       />
+
+      {/* Tela de resultado */}
+      {gameOver && (
+        <ResultScreen
+          won={status === 'won'}
+          score={currentMaxScore}
+          skips={skips}
+          attempts={attempts}
+          correctWord={correctWord}
+        />
+      )}
 
       {/* Timer */}
       {status === 'waiting_timer' && timerEndsAt && (

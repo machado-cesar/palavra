@@ -89,6 +89,7 @@ export interface AttemptResponse {
   won: boolean
   gameOver: boolean
   timerEndsAt: string | null
+  correctWord?: string   // revelada apenas quando gameOver && !won
 }
 
 export interface SkipResponse {

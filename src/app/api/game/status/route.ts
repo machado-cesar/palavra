@@ -36,6 +36,13 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (completedSession) {
+        // Buscar a palavra para revelar se o jogador perdeu
+        const { data: wordData } = await supabaseAdmin
+          .from('words')
+          .select('word')
+          .eq('id', word.id)
+          .single()
+
         return NextResponse.json({
           success: true,
           data: {
@@ -48,6 +55,7 @@ export async function GET(request: NextRequest) {
               attempts: completedSession.attempts,
               timerSkips: completedSession.timer_skips,
               maxPossibleScore: completedSession.max_possible_score,
+              correctWord: completedSession.won ? undefined : wordData?.word,
             },
           },
         })
