@@ -318,10 +318,8 @@ export default function GamePage() {
         </a>
       </header>
 
-      {/* Pontuação — esconde quando jogo encerrado (substituída pelo breakdown na ResultScreen) */}
-      {!gameOver && (
-        <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
-      )}
+      {/* Pontuação */}
+      <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
 
       {/* Mensagem de feedback */}
       {message && (

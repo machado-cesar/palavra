@@ -92,12 +92,21 @@ export default function ResultScreen({ won, score, skips, attempts, correctWord 
   }
 
   return (
+    /* Backdrop */
     <div
-      className={`w-full transition-all duration-500 ease-out ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-      }`}
+      className={`fixed inset-0 z-50 flex items-center justify-center px-4
+        transition-all duration-400 ease-out
+        ${visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
     >
-      <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 space-y-4">
+      {/* Overlay escuro */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+      {/* Card */}
+      <div
+        className={`relative w-full max-w-sm transition-all duration-400 ease-out
+          ${visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}
+      >
+      <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 space-y-4 shadow-2xl">
 
         {/* Título */}
         <div className="text-center">
@@ -174,6 +183,7 @@ export default function ResultScreen({ won, score, skips, attempts, correctWord 
             {copied ? '✓ Copiado!' : 'Compartilhar'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
