@@ -1,5 +1,4 @@
 import { Redis } from '@upstash/redis'
-import { SCORING } from '@/types'
 
 export const redis = Redis.fromEnv()
 
@@ -15,8 +14,8 @@ export const keys = {
 
 // ─── Timer ────────────────────────────────────────────────────────────────────
 
-export async function setTimer(userId: string): Promise<string> {
-  const seconds = SCORING.TIMER_MINUTES * 60
+export async function setTimer(userId: string, minutes: number): Promise<string> {
+  const seconds = minutes * 60
   const endsAt = new Date(Date.now() + seconds * 1000).toISOString()
   await redis.set(keys.timer(userId), endsAt, { ex: seconds })
   return endsAt

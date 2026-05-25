@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { SCORING } from '@/types'
+import { useEffect, useRef, useState } from 'react'
 
 interface TimerBarProps {
   timerEndsAt: string   // ISO string
@@ -18,8 +17,19 @@ function formatTime(seconds: number): string {
 }
 
 export default function TimerBar({ timerEndsAt, onExpire, onSkip, skipPenalty, isSkipping }: TimerBarProps) {
-  const totalSeconds = SCORING.TIMER_MINUTES * 60
-  const [secondsLeft, setSecondsLeft] = useState<number>(totalSeconds)
+  // Calcula o total de segundos no momento em que o timer é montado (ou muda)
+  const totalSecondsRef = useRef<number>(
+    Math.max(1, Math.round((new Date(timerEndsAt).getTime() - Date.now()) / 1000))
+  )
+
+  const [secondsLeft, setSecondsLeft] = useState<number>(() =>
+    Math.max(0, Math.round((new Date(timerEndsAt).getTime() - Date.now()) / 1000))
+  )
+
+  // Atualiza o total quando timerEndsAt muda (novo timer progressivo)
+  useEffect(() => {
+    totalSecondsRef.current = Math.max(1, Math.round((new Date(timerEndsAt).getTime() - Date.now()) / 1000))
+  }, [timerEndsAt])
 
   useEffect(() => {
     const update = () => {
@@ -33,7 +43,7 @@ export default function TimerBar({ timerEndsAt, onExpire, onSkip, skipPenalty, i
     return () => clearInterval(interval)
   }, [timerEndsAt, onExpire])
 
-  const percentage = (secondsLeft / totalSeconds) * 100
+  const percentage = (secondsLeft / totalSecondsRef.current) * 100
 
   return (
     <div className="w-full max-w-sm mx-auto space-y-3 p-4 bg-zinc-800 rounded-xl border border-zinc-700">

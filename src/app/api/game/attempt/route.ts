@@ -16,7 +16,7 @@ import {
   calculateFinalScore,
   getMaxScoreForAttempt,
 } from '@/lib/scoring'
-import { SCORING, AttemptResponse } from '@/types'
+import { SCORING, AttemptResponse, getTimerMinutes } from '@/types'
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,9 +139,9 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', activeSession.sessionId)
 
-      // Ativar timer se necessário
+      // Ativar timer se necessário (progressivo: 2min→5min→10min→30min)
       if (shouldActivateTimer(newWrongAttempts)) {
-        timerEndsAt = await setTimer(user.id)
+        timerEndsAt = await setTimer(user.id, getTimerMinutes(newWrongAttempts))
       }
 
       // Atualizar sessão no Redis

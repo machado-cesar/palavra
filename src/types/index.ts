@@ -105,6 +105,14 @@ export const SCORING = {
   MAX_ATTEMPTS: 6,
   PENALTY_PER_WRONG: 200,     // -200 pts por tentativa errada
   PENALTY_PER_SKIP: 100,      // -100 pts por pular o timer
-  TIMER_MINUTES: 30,          // 30 minutos de cooldown
   MIN_SCORE: 10,              // pontuação mínima ao acertar
 } as const
+
+// Timer progressivo por número de erros acumulados
+// wrongAttempts=2 → 2min, 3 → 5min, 4 → 10min, 5+ → 30min
+export function getTimerMinutes(wrongAttempts: number): number {
+  if (wrongAttempts <= 2) return 2
+  if (wrongAttempts === 3) return 5
+  if (wrongAttempts === 4) return 10
+  return 30
+}
