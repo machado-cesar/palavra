@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getTimer, getActiveSession } from '@/lib/redis'
 import { SCORING } from '@/types'
 import { getMaxScoreForAttempt } from '@/lib/scoring'
+import { getTodayBRT } from '@/lib/date'
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,13 +46,13 @@ export async function GET(request: NextRequest) {
     let streakAtRisk = false
     if (lastPlayedAt && streak > 0 && tokens > 0) {
       const lastDate = new Date(lastPlayedAt)
-      const todayDate = new Date(new Date().toISOString().split('T')[0])
+      const todayDate = new Date(getTodayBRT())
       const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / 86400000)
       if (diffDays >= 2) streakAtRisk = true
     }
 
     // Buscar palavra do dia
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayBRT()
     const { data: word } = await supabaseAdmin
       .from('words')
       .select('id')

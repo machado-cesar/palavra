@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getRanking, getUserRank } from '@/lib/redis'
+import { getTodayBRT } from '@/lib/date'
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
             .from('leaderboard_daily')
             .select('score')
             .eq('user_id', userId)
-            .eq('date', new Date().toISOString().split('T')[0])
+            .eq('date', getTodayBRT())
             .single()
 
           userEntry = {

@@ -17,6 +17,7 @@ import {
   getMaxScoreForAttempt,
 } from '@/lib/scoring'
 import { SCORING, AttemptResponse, getTimerMinutes } from '@/types'
+import { getTodayBRT } from '@/lib/date'
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
         .eq('id', activeSession.sessionId)
 
       // Atualizar placar diário
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayBRT()
       await supabaseAdmin
         .from('leaderboard_daily')
         .upsert({

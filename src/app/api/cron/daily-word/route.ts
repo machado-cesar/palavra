@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getTodayBRT } from '@/lib/date'
 
 /**
  * GET /api/cron/daily-word
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayBRT()
 
     // Verificar se a palavra do dia já foi definida
     const { data: existing } = await supabaseAdmin

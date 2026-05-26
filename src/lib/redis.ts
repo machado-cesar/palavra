@@ -58,7 +58,8 @@ export async function clearActiveSession(userId: string): Promise<void> {
 // ─── Ranking ──────────────────────────────────────────────────────────────────
 
 export function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0]  // YYYY-MM-DD
+  const BRT_OFFSET_MS = 3 * 60 * 60 * 1000
+  return new Date(Date.now() - BRT_OFFSET_MS).toISOString().split('T')[0]  // YYYY-MM-DD em BRT
 }
 
 export function getWeekKey(): string {

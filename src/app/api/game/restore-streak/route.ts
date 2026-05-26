@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getTodayBRT } from '@/lib/date'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const lastDate = new Date(last_played_at)
-    const todayDate = new Date(new Date().toISOString().split('T')[0])
+    const todayDate = new Date(getTodayBRT())
     const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / 86400000)
 
     if (diffDays < 2) {

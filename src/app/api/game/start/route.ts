@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getTimer, getActiveSession, setActiveSession } from '@/lib/redis'
 import { SCORING } from '@/types'
+import { getTodayBRT } from '@/lib/date'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se streak precisa ser resetado (jogador faltou dias sem usar token)
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayBRT()
     const { data: userProfile } = await supabaseAdmin
       .from('users')
       .select('current_streak, last_played_at')
