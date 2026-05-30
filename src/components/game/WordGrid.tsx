@@ -36,7 +36,7 @@ function LetterCell({
         border-2 text-xl sm:text-2xl font-bold uppercase
         transition-all duration-300
         ${statusColors[status]}
-        ${isCursor ? 'border-white border-[3px] shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]' : ''}
+        ${isCursor ? 'border-zinc-300 shadow-[0_0_6px_1px_rgba(255,255,255,0.2)] bg-zinc-800' : ''}
         ${onClick ? 'cursor-pointer' : ''}
       `}
     >
