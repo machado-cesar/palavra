@@ -251,8 +251,8 @@ export default function GamePage() {
 
     const normalized = normalizeWord(currentAttempt)
     if (!isValidPortugueseWord(normalized)) {
-      setMessage('Palavra não encontrada no dicionário')
-      setTimeout(() => setMessage(''), 2000)
+      setMessage('Palavra inválida')
+      setTimeout(() => setMessage(''), 1500)
       return
     }
 
@@ -411,10 +411,10 @@ export default function GamePage() {
   const gameOver = status === 'won' || status === 'lost'
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-4 max-w-lg mx-auto">
+    <div className="flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto">
 
       {/* Header */}
-      <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
+      <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-2">
         <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
 
         <div className="flex items-center gap-3">
@@ -440,16 +440,17 @@ export default function GamePage() {
       {/* Pontuação */}
       <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
 
-      {/* Mensagem de feedback */}
+      {/* Toasts flutuantes — não deslocam o layout */}
       {message && (
-        <div className="px-4 py-2 bg-zinc-700 rounded-lg text-sm text-center">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50
+          px-4 py-2 bg-zinc-700 border border-zinc-500 rounded-full shadow-lg
+          text-white text-sm font-medium pointer-events-none
+          animate-[fadeIn_0.15s_ease]">
           {message}
         </div>
       )}
-
-      {/* Toast flutuante de envio — não desloca o layout */}
       {isSubmitting && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50
           px-4 py-2 bg-zinc-800 border border-zinc-600 rounded-full shadow-lg
           text-zinc-300 text-xs font-medium animate-pulse pointer-events-none">
           Verificando…
@@ -457,13 +458,15 @@ export default function GamePage() {
       )}
 
       {/* Grid */}
-      <WordGrid
-        attempts={attempts}
-        currentLetters={currentLetters}
-        cursorPos={cursorPos}
-        gameOver={gameOver}
-        onCellClick={status === 'playing' ? handleCellClick : undefined}
-      />
+      <div className="relative">
+        <WordGrid
+          attempts={attempts}
+          currentLetters={currentLetters}
+          cursorPos={cursorPos}
+          gameOver={gameOver}
+          onCellClick={status === 'playing' ? handleCellClick : undefined}
+        />
+      </div>
 
       {/* Modal de resultado */}
       {gameOver && showResult && (
@@ -491,7 +494,7 @@ export default function GamePage() {
 
       {/* Teclado — visível durante o jogo e o timer; desabilitado no timer e durante submissão */}
       {(status === 'playing' || status === 'waiting_timer') && (
-        <div className="w-full mt-auto">
+        <div className="w-full mt-auto pt-1">
           <Keyboard
             keyboardState={keyboardState}
             onKey={handleKey}

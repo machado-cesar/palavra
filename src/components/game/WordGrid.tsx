@@ -32,11 +32,11 @@ function LetterCell({
     <div
       onClick={onClick}
       className={`
-        w-14 h-14 flex items-center justify-center
-        border-2 text-2xl font-bold uppercase
+        w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center
+        border-2 text-xl sm:text-2xl font-bold uppercase
         transition-all duration-300
         ${statusColors[status]}
-        ${isCursor ? 'border-zinc-300 border-[3px]' : ''}
+        ${isCursor ? 'border-white border-[3px] shadow-[0_0_8px_2px_rgba(255,255,255,0.5)]' : ''}
         ${onClick ? 'cursor-pointer' : ''}
       `}
     >

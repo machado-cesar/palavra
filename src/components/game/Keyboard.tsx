@@ -13,7 +13,7 @@ interface KeyboardProps {
 const ROWS = [
   ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⌫'],
+  ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'ENTER'],
 ]
 
 const statusColors: Record<LetterStatus, string> = {
@@ -32,7 +32,7 @@ export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, d
   }
 
   return (
-    <div className="flex flex-col gap-1.5 w-full max-w-lg mx-auto">
+    <div className="flex flex-col gap-1 sm:gap-1.5 w-full max-w-lg mx-auto">
       {ROWS.map((row, rowIndex) => (
         <div key={rowIndex} className="flex justify-center gap-1.5">
           {row.map((key) => {
@@ -45,8 +45,8 @@ export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, d
                 onClick={() => handleClick(key)}
                 disabled={disabled}
                 className={`
-                  ${isWide ? 'px-3 text-sm min-w-[56px]' : 'w-10'}
-                  h-14 rounded font-bold uppercase
+                  ${isWide ? 'px-2 text-xs min-w-[44px] sm:px-3 sm:text-sm sm:min-w-[56px]' : 'w-8 sm:w-10'}
+                  h-12 sm:h-14 rounded font-bold uppercase
                   transition-colors duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed
                   ${statusColors[status as LetterStatus]}
