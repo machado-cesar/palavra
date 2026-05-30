@@ -11,6 +11,7 @@ import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
+import { isValidPortugueseWord } from '@/lib/valid-words'
 
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
@@ -23,7 +24,8 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
 export default function GamePage() {
   const [status, setStatus] = useState<GameStatus>('idle')
   const [attempts, setAttempts] = useState<Attempt[]>([])
-  const [currentAttempt, setCurrentAttempt] = useState('')
+  const [currentLetters, setCurrentLetters] = useState<string[]>(['', '', '', '', ''])
+  const [cursorPos, setCursorPos] = useState(0)
   const [keyboardState, setKeyboardState] = useState<Record<string, LetterStatus>>({})
   const [currentMaxScore, setCurrentMaxScore] = useState(SCORING.MAX_SCORE)
   const [timerEndsAt, setTimerEndsAt] = useState<string | null>(null)
@@ -183,7 +185,8 @@ export default function GamePage() {
 
     setStatus('playing')
     setAttempts([])
-    setCurrentAttempt('')
+    setCurrentLetters(['', '', '', '', ''])
+    setCursorPos(0)
     setKeyboardState({})
     setCurrentMaxScore(SCORING.MAX_SCORE)
     setSkips(0)
@@ -202,18 +205,43 @@ export default function GamePage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [status, currentAttempt, attempts, isSubmitting])
+  }, [status, currentLetters, cursorPos, attempts, isSubmitting])
 
   function handleKey(key: string) {
-    if (currentAttempt.length < 5) setCurrentAttempt(prev => prev + key)
+    setCurrentLetters(prev => {
+      const next = [...prev]
+      next[cursorPos] = key
+      return next
+    })
+    setCursorPos(prev => Math.min(prev + 1, 4))
   }
 
   function handleBackspace() {
-    setCurrentAttempt(prev => prev.slice(0, -1))
+    if (currentLetters[cursorPos] !== '') {
+      // Limpa a letra na posição atual, mantém cursor
+      setCurrentLetters(prev => {
+        const next = [...prev]
+        next[cursorPos] = ''
+        return next
+      })
+    } else if (cursorPos > 0) {
+      // Posição atual já vazia — recua cursor e limpa anterior
+      setCursorPos(cursorPos - 1)
+      setCurrentLetters(prev => {
+        const next = [...prev]
+        next[cursorPos - 1] = ''
+        return next
+      })
+    }
+  }
+
+  function handleCellClick(col: number) {
+    setCursorPos(col)
   }
 
   async function handleEnter() {
-    if (currentAttempt.length !== 5) {
+    const currentAttempt = currentLetters.join('')
+    if (currentAttempt.length !== 5 || currentLetters.some(l => l === '')) {
       setMessage('A palavra precisa ter 5 letras')
       setTimeout(() => setMessage(''), 2000)
       return
@@ -221,8 +249,14 @@ export default function GamePage() {
 
     if (!authToken || isSubmitting) return
 
-    setIsSubmitting(true)
     const normalized = normalizeWord(currentAttempt)
+    if (!isValidPortugueseWord(normalized)) {
+      setMessage('Palavra não encontrada no dicionário')
+      setTimeout(() => setMessage(''), 2000)
+      return
+    }
+
+    setIsSubmitting(true)
 
     const res = await fetch('/api/game/attempt', {
       method: 'POST',
@@ -250,7 +284,8 @@ export default function GamePage() {
       timestamp: new Date().toISOString(),
     }
     setAttempts(prev => [...prev, newAttempt])
-    setCurrentAttempt('')
+    setCurrentLetters(['', '', '', '', ''])
+    setCursorPos(0)
 
     setKeyboardState(prev => {
       const updated = { ...prev }
@@ -424,8 +459,10 @@ export default function GamePage() {
       {/* Grid */}
       <WordGrid
         attempts={attempts}
-        currentAttempt={currentAttempt}
+        currentLetters={currentLetters}
+        cursorPos={cursorPos}
         gameOver={gameOver}
+        onCellClick={status === 'playing' ? handleCellClick : undefined}
       />
 
       {/* Modal de resultado */}
@@ -452,15 +489,15 @@ export default function GamePage() {
         />
       )}
 
-      {/* Teclado — desabilitado durante submissão ou jogo encerrado */}
-      {status === 'playing' && (
+      {/* Teclado — visível durante o jogo e o timer; desabilitado no timer e durante submissão */}
+      {(status === 'playing' || status === 'waiting_timer') && (
         <div className="w-full mt-auto">
           <Keyboard
             keyboardState={keyboardState}
             onKey={handleKey}
             onEnter={handleEnter}
             onBackspace={handleBackspace}
-            disabled={isSubmitting}
+            disabled={isSubmitting || status === 'waiting_timer'}
           />
         </div>
       )}

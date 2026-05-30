@@ -4,8 +4,10 @@ import { Attempt, LetterStatus, SCORING } from '@/types'
 
 interface WordGridProps {
   attempts: Attempt[]
-  currentAttempt: string
+  currentLetters: string[]   // array de 5 elementos
+  cursorPos: number          // posição do cursor na linha atual
   gameOver: boolean
+  onCellClick?: (col: number) => void
 }
 
 const statusColors: Record<LetterStatus, string> = {
@@ -15,14 +17,27 @@ const statusColors: Record<LetterStatus, string> = {
   empty:   'bg-transparent border-zinc-600 text-white',
 }
 
-function LetterCell({ letter, status }: { letter: string; status: LetterStatus }) {
+function LetterCell({
+  letter,
+  status,
+  isCursor = false,
+  onClick,
+}: {
+  letter: string
+  status: LetterStatus
+  isCursor?: boolean
+  onClick?: () => void
+}) {
   return (
     <div
+      onClick={onClick}
       className={`
         w-14 h-14 flex items-center justify-center
         border-2 text-2xl font-bold uppercase
         transition-all duration-300
         ${statusColors[status]}
+        ${isCursor ? 'border-zinc-300 border-[3px]' : ''}
+        ${onClick ? 'cursor-pointer' : ''}
       `}
     >
       {letter}
@@ -30,7 +45,7 @@ function LetterCell({ letter, status }: { letter: string; status: LetterStatus }
   )
 }
 
-export default function WordGrid({ attempts, currentAttempt, gameOver }: WordGridProps) {
+export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver, onCellClick }: WordGridProps) {
   const rows = Array(SCORING.MAX_ATTEMPTS).fill(null)
 
   return (
@@ -56,8 +71,10 @@ export default function WordGrid({ attempts, currentAttempt, gameOver }: WordGri
               {Array(5).fill(null).map((_, colIndex) => (
                 <LetterCell
                   key={colIndex}
-                  letter={currentAttempt[colIndex] || ''}
-                  status={currentAttempt[colIndex] ? 'empty' : 'empty'}
+                  letter={currentLetters[colIndex] || ''}
+                  status="empty"
+                  isCursor={colIndex === cursorPos}
+                  onClick={() => onCellClick?.(colIndex)}
                 />
               ))}
             </div>

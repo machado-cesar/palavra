@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tentativa inválida' }, { status: 400 })
     }
 
+
     // Buscar sessão ativa
     const activeSession = await getActiveSession(user.id)
     if (!activeSession) {
