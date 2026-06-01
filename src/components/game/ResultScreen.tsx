@@ -76,18 +76,24 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
 
   async function handleShare() {
     const text = buildShareText(attempts, won, score, streak)
+    const url = 'https://palavra-xck5.vercel.app'
+    const shareData = { text, url }
+
+    const canUseShare = navigator.share && navigator.canShare?.(shareData)
+
     try {
-      if (navigator.share) {
-        await navigator.share({ text })
+      if (canUseShare) {
+        await navigator.share(shareData)
       } else {
-        await navigator.clipboard.writeText(text)
+        // Fallback: copia para clipboard (Windows sem suporte a share-only-text, desktop, etc.)
+        await navigator.clipboard.writeText(`${text}\n${url}`)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
     } catch {
-      // usuário cancelou ou API indisponível — tenta clipboard
+      // Usuário cancelou ou falha — tenta clipboard silenciosamente
       try {
-        await navigator.clipboard.writeText(text)
+        await navigator.clipboard.writeText(`${text}\n${url}`)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       } catch { /* silencioso */ }
