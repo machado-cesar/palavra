@@ -79,7 +79,7 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
     const url = 'https://palavra-xck5.vercel.app'
     const shareData = { text, url }
 
-    const canUseShare = navigator.share && navigator.canShare?.(shareData)
+    const canUseShare = typeof navigator.share === 'function' && navigator.canShare?.(shareData)
 
     try {
       if (canUseShare) {
