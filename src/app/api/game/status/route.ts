@@ -128,6 +128,8 @@ export async function GET(request: NextRequest) {
         )
       : SCORING.MAX_SCORE
 
+    const isReturning = !!userProfile?.last_played_at
+
     return NextResponse.json({
       success: true,
       data: {
@@ -135,6 +137,7 @@ export async function GET(request: NextRequest) {
         tokens,
         usernameConfirmed,
         streakAtRisk,
+        isReturning,
         canPlay: !timerEndsAt || new Date(timerEndsAt) <= new Date(),
         timerEndsAt: timerEndsAt,
         completedSession: null,

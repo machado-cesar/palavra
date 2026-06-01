@@ -91,7 +91,7 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk } = json.data
+      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning } = json.data
       if (userStreak) setStreak(userStreak)
       if (confirmed) setUsernameConfirmed(true)
       if (userTokens) setTokens(userTokens)
@@ -162,6 +162,14 @@ export default function GamePage() {
       }
 
       // Nenhum estado ativo — iniciar jogo automaticamente
+      // session_return: só quem já jogou antes (last_played_at existe no banco)
+      if (isReturning) {
+        trackEvent('session_return', { streak: userStreak })
+      }
+      // streak_return: retorno mantendo sequência ativa — candidato ao evento α
+      if (isReturning && userStreak >= 1) {
+        trackEvent('streak_return', { streak: userStreak })
+      }
       await startGame(authToken!)
     }
 
@@ -312,6 +320,7 @@ export default function GamePage() {
       if (!usernameConfirmed) setShowUsernameModal(true)
       else setShowResult(true)
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
+      trackEvent('game_complete', { won: true, score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
@@ -323,6 +332,7 @@ export default function GamePage() {
       if (!usernameConfirmed) setShowUsernameModal(true)
       else setShowResult(true)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
+      trackEvent('game_complete', { won: false, score: 0, attempts: attempts.length + 1 })
     } else {
       setCurrentMaxScore(score)
       if (timer) {
