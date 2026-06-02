@@ -58,7 +58,7 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number, streak
     : `❌ Não acertei hoje`
   const streakLine = streak > 0 ? `\n🔥 ${streak} dia${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''}` : ''
 
-  return `char[5] — ${today}\n${result}${streakLine}\n\n${grid}`
+  return `char[5] — ${today}\n${result}${streakLine}\n\n${grid}\n\nhttps://char5.com.br`
 }
 
 export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, onClose }: ResultScreenProps) {
@@ -76,24 +76,18 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
 
   async function handleShare() {
     const text = buildShareText(attempts, won, score, streak)
-    const url = 'https://char5.com.br'
-    const shareData = { text, url }
-
-    const canUseShare = typeof navigator.share === 'function' && navigator.canShare?.(shareData)
-
     try {
-      if (canUseShare) {
-        await navigator.share(shareData)
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ text })
       } else {
-        // Fallback: copia para clipboard (Windows sem suporte a share-only-text, desktop, etc.)
-        await navigator.clipboard.writeText(`${text}\n\n${url}`)
+        await navigator.clipboard.writeText(text)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       }
     } catch {
-      // Usuário cancelou ou falha — tenta clipboard silenciosamente
+      // Usuário cancelou ou share falhou — tenta clipboard
       try {
-        await navigator.clipboard.writeText(`${text}\n\n${url}`)
+        await navigator.clipboard.writeText(text)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       } catch { /* silencioso */ }
