@@ -5,7 +5,7 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-const BASE_URL = 'https://palavra-xck5.vercel.app'
+const BASE_URL = 'https://char5.com.br'
 const TITLE = 'char[5] — Adivinhe a palavra do dia'
 const DESCRIPTION = 'Adivinhe a palavra de 5 letras. Um novo desafio todo dia.'
 
