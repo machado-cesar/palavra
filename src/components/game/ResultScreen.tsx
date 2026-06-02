@@ -76,8 +76,11 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
 
   async function handleShare() {
     const text = buildShareText(attempts, won, score, streak)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    const useShare = typeof navigator.share === 'function' && isMobile
+
     try {
-      if (typeof navigator.share === 'function') {
+      if (useShare) {
         await navigator.share({ text })
       } else {
         await navigator.clipboard.writeText(text)
