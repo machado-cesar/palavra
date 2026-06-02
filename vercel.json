@@ -4,5 +4,18 @@
       "path": "/api/cron/daily-word",
       "schedule": "0 3 * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "palavra-xck5.vercel.app"
+        }
+      ],
+      "destination": "https://char5.com.br/$1",
+      "permanent": true
+    }
   ]
 }
