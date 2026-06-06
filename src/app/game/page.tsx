@@ -269,9 +269,11 @@ export default function GamePage() {
       return
     }
 
-    setIsSubmitting(true)
+    // Congela o score exibido no momento do submit (inclui recovery acumulado)
+    setCurrentMaxScore(prev => prev + recoveredPoints)
     setRecoveryStartedAt(null)
     setRecoveredPoints(0)
+    setIsSubmitting(true)
 
     const res = await fetch('/api/game/attempt', {
       method: 'POST',

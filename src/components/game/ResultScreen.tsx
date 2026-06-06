@@ -169,21 +169,38 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
         </div>
 
         {/* Pontuação final */}
-        {won && (
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">
-                {attempts.length === 1
-                  ? 'Acertou de primeira!'
-                  : `${attempts.length - 1} erro${attempts.length - 1 > 1 ? 's' : ''} · pontos recuperados incluídos`}
-              </span>
+        {won && (() => {
+          const wrongAttempts = attempts.length - 1
+          const totalPenalties = wrongAttempts === 0 ? 0 : 100 + 200 * (wrongAttempts - 1)
+          const totalRecovered = wrongAttempts > 0 ? score - 1500 + totalPenalties : 0
+
+          return (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Pontuação base</span>
+                <span className="text-zinc-300">1.500</span>
+              </div>
+              {totalPenalties > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">
+                    {wrongAttempts} erro{wrongAttempts > 1 ? 's' : ''}
+                  </span>
+                  <span className="text-red-400">−{totalPenalties}</span>
+                </div>
+              )}
+              {totalRecovered > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-400">Recuperados por espera</span>
+                  <span className="text-green-400">+{totalRecovered}</span>
+                </div>
+              )}
+              <div className="border-t border-zinc-600 pt-2 flex justify-between items-center">
+                <span className="font-semibold">Total</span>
+                <span className="text-2xl font-bold text-green-400">+{score}</span>
+              </div>
             </div>
-            <div className="border-t border-zinc-600 pt-2 flex justify-between items-center">
-              <span className="font-semibold">Total</span>
-              <span className="text-2xl font-bold text-green-400">+{score}</span>
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* Streak */}
         {streak > 0 && (
