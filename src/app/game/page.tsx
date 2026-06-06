@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabase'
 import WordGrid from '@/components/game/WordGrid'
 import Keyboard from '@/components/game/Keyboard'
@@ -44,11 +44,48 @@ export default function GamePage() {
   const [isRestoringStreak, setIsRestoringStreak] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [pendingStart, setPendingStart] = useState(false)
   const [showStreakRecovery, setShowStreakRecovery] = useState(false)
   const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
   const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
+
+  // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
+
+  useEffect(() => {
+    if (recoveryIntervalRef.current) {
+      clearInterval(recoveryIntervalRef.current)
+      recoveryIntervalRef.current = null
+    }
+
+    if (!recoveryStartedAt) {
+      setRecoveredPoints(0)
+      return
+    }
+
+    function compute() {
+      const elapsed = Math.floor((Date.now() - new Date(recoveryStartedAt!).getTime()) / 1000)
+      return Math.min(elapsed, 100)
+    }
+
+    setRecoveredPoints(compute())
+
+    const interval = setInterval(() => {
+      const pts = compute()
+      setRecoveredPoints(pts)
+      if (pts >= 100) {
+        clearInterval(interval)
+        recoveryIntervalRef.current = null
+      }
+    }, 1000)
+
+    recoveryIntervalRef.current = interval
+    return () => {
+      clearInterval(interval)
+      recoveryIntervalRef.current = null
+    }
+  }, [recoveryStartedAt])
 
   // ─── Auth anônimo automático ───────────────────────────────────────────────
 
@@ -269,7 +306,11 @@ export default function GamePage() {
       return
     }
 
-    // Congela o score exibido no momento do submit (inclui recovery acumulado)
+    // Cancela o intervalo de recovery sincronicamente — evita ticks extras após submit
+    if (recoveryIntervalRef.current) {
+      clearInterval(recoveryIntervalRef.current)
+      recoveryIntervalRef.current = null
+    }
     setCurrentMaxScore(prev => prev + recoveredPoints)
     setRecoveryStartedAt(null)
     setRecoveredPoints(0)
@@ -519,10 +560,7 @@ export default function GamePage() {
 
       {/* Recovery bar — visível enquanto recuperação ativa */}
       {status === 'playing' && recoveryStartedAt && (
-        <RecoveryBar
-          recoveryStartedAt={recoveryStartedAt}
-          onRecoveryUpdate={setRecoveredPoints}
-        />
+        <RecoveryBar recovered={recoveredPoints} />
       )}
 
       {/* Teclado */}
