@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
       userId = user?.id ?? null
     }
 
-    // Top 10 do dia
-    const entries = await getRanking('daily', 10)
+    // Top 20 do dia
+    const entries = await getRanking('daily', 20)
 
     if (entries.length === 0) {
       return NextResponse.json({
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       isCurrentUser: entry.userId === userId,
     }))
 
-    // Posição do usuário logado (se não estiver no top 10)
+    // Posição do usuário logado (se não estiver no top 20)
     let userRank: number | null = null
     let userEntry: { rank: number; username: string; score: number } | null = null
 

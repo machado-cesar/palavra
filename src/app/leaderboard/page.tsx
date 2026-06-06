@@ -132,7 +132,7 @@ export default function LeaderboardPage() {
             </div>
           ))}
 
-          {/* Posição do usuário se fora do top 10 */}
+          {/* Posição do usuário se fora do top 20 */}
           {data.userEntry && !data.leaderboard.some(e => e.isCurrentUser) && (
             <>
               <div className="text-center text-zinc-600 text-xs py-1">• • •</div>
