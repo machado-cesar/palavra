@@ -188,30 +188,30 @@ export default function ComoJogarPage() {
       </Section>
 
       {/* Tokens */}
-      <Section title="Tokens 🛡️">
+      <Section title="Escudos 🛡️">
         <p className="text-zinc-300 text-sm leading-relaxed">
-          Tokens protegem sua sequência nos dias difíceis. Você os ganha por consistência e os gasta automaticamente quando precisa.
+          Escudos protegem sua sequência nos dias difíceis. Você os ganha por consistência e decide quando usá-los.
         </p>
         <div className="space-y-3">
           <div className="flex gap-3 p-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
             <span className="text-xl shrink-0">🪙</span>
             <div>
               <p className="text-sm font-semibold text-zinc-200">Como ganhar</p>
-              <p className="text-sm text-zinc-400">A cada 3 dias consecutivos de streak você ganha 1 token. Máximo de 5 acumulados.</p>
+              <p className="text-sm text-zinc-400">A cada 3 dias consecutivos de streak você ganha 1 escudo. Máximo de 3 acumulados.</p>
             </div>
           </div>
           <div className="flex gap-3 p-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
             <span className="text-xl shrink-0">🛡️</span>
             <div>
-              <p className="text-sm font-semibold text-zinc-200">Proteção automática</p>
-              <p className="text-sm text-zinc-400">Se você perder uma partida e tiver tokens, 1 token é gasto automaticamente para preservar sua sequência.</p>
+              <p className="text-sm font-semibold text-zinc-200">Partida perdida</p>
+              <p className="text-sm text-zinc-400">Se você perder uma partida e tiver escudos, o jogo perguntará se quer gastar 1 para recuperar sua sequência. A escolha é sua.</p>
             </div>
           </div>
           <div className="flex gap-3 p-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
             <span className="text-xl shrink-0">🔄</span>
             <div>
               <p className="text-sm font-semibold text-zinc-200">Dia perdido</p>
-              <p className="text-sm text-zinc-400">Se você não jogou ontem e tem tokens, ao abrir o jogo aparecerá a opção de usar 1 token para restaurar sua sequência.</p>
+              <p className="text-sm text-zinc-400">Se você não jogou ontem e tem escudos, ao abrir o jogo aparecerá a opção de usar 1 escudo para restaurar sua sequência.</p>
             </div>
           </div>
         </div>

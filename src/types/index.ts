@@ -89,9 +89,12 @@ export interface AttemptResponse {
   won: boolean
   gameOver: boolean
   timerEndsAt: string | null
-  correctWord?: string   // revelada apenas quando gameOver && !won
-  streakSaved?: boolean  // token foi gasto automaticamente para preservar o streak
-  tokenEarned?: boolean  // ganhou um token novo nesse jogo (streak múltiplo de 3)
+  correctWord?: string        // revelada apenas quando gameOver && !won
+  streakSaved?: boolean       // legado — não usado ativamente
+  tokenEarned?: boolean       // ganhou um token novo nesse jogo (streak múltiplo de 3)
+  streakCanBeSaved?: boolean  // jogador pode gastar token para recuperar o streak
+  prevStreak?: number         // valor do streak antes do reset
+  tokens?: number             // tokens disponíveis no momento
 }
 
 export interface SkipResponse {

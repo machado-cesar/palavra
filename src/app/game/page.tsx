@@ -10,6 +10,7 @@ import SkipModal from '@/components/game/SkipModal'
 import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
 import OnboardingModal from '@/components/game/OnboardingModal'
+import StreakRecoveryModal from '@/components/game/StreakRecoveryModal'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
@@ -48,6 +49,9 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [pendingStart, setPendingStart] = useState(false)
+  const [showStreakRecovery, setShowStreakRecovery] = useState(false)
+  const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
+  const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
 
   // ─── Auth anônimo automático ───────────────────────────────────────────────
 
@@ -320,6 +324,11 @@ export default function GamePage() {
 
     trackEvent('attempt_made', { won, game_over: gameOver })
 
+    function proceedAfterGame() {
+      if (!usernameConfirmed) setShowUsernameModal(true)
+      else setShowResult(true)
+    }
+
     if (won) {
       setCurrentMaxScore(score)
       setStatus('won')
@@ -329,22 +338,22 @@ export default function GamePage() {
         setMessage('🪙 +1 Token ganho pela sequência!')
         setTimeout(() => setMessage(''), 3000)
       }
-      if (!usernameConfirmed) setShowUsernameModal(true)
-      else setShowResult(true)
+      proceedAfterGame()
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
       trackEvent('game_complete', { won: true, score, attempts: attempts.length + 1 })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
-      if (json.data.streakSaved) {
-        setTokens(prev => prev - 1)
-        setMessage('🛡️ Token usado — sua sequência foi protegida!')
-        setTimeout(() => setMessage(''), 3000)
-      }
-      if (!usernameConfirmed) setShowUsernameModal(true)
-      else setShowResult(true)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
       trackEvent('game_complete', { won: false, score: 0, attempts: attempts.length + 1 })
+
+      // Oferecer recuperação de streak via token, se disponível
+      if (json.data.streakCanBeSaved) {
+        setStreakRecoveryInfo({ prevStreak: json.data.prevStreak, tokens: json.data.tokens })
+        setShowStreakRecovery(true)
+      } else {
+        proceedAfterGame()
+      }
     } else {
       setCurrentMaxScore(score)
       if (timer) {
@@ -413,6 +422,41 @@ export default function GamePage() {
     setShowStreakRestorePrompt(false)
     setStreakAtRiskInfo(null)
     await startGame(authToken!)
+  }
+
+  // ─── Recuperação de streak via token ──────────────────────────────────────
+
+  function proceedAfterStreakDecision() {
+    setShowStreakRecovery(false)
+    setStreakRecoveryInfo(null)
+    if (!usernameConfirmed) setShowUsernameModal(true)
+    else setShowResult(true)
+  }
+
+  async function handleStreakRecover() {
+    if (!authToken || !streakRecoveryInfo) return
+    setIsRecoveringStreak(true)
+
+    const res = await fetch('/api/game/recover-streak', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prevStreak: streakRecoveryInfo.prevStreak }),
+    })
+    const json = await res.json()
+    setIsRecoveringStreak(false)
+
+    if (json.success) {
+      setStreak(json.data.streak)
+      setTokens(json.data.tokensLeft)
+    }
+    proceedAfterStreakDecision()
+  }
+
+  function handleStreakDecline() {
+    proceedAfterStreakDecision()
   }
 
   // ─── Onboarding ───────────────────────────────────────────────────────────
@@ -585,6 +629,17 @@ export default function GamePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de recuperação de streak */}
+      {showStreakRecovery && streakRecoveryInfo && (
+        <StreakRecoveryModal
+          prevStreak={streakRecoveryInfo.prevStreak}
+          tokens={streakRecoveryInfo.tokens}
+          onRecover={handleStreakRecover}
+          onDecline={handleStreakDecline}
+          isLoading={isRecoveringStreak}
+        />
       )}
 
       {/* Modal de onboarding — aparece apenas na primeira visita */}

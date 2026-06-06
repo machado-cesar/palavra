@@ -28,6 +28,12 @@ export default function OnboardingModal({ onConfirm }: OnboardingModalProps) {
             <span className="text-zinc-500 mt-0.5">3.</span>
             <span>Volte todo dia para construir seu streak e subir no ranking.</span>
           </li>
+          <li className="flex gap-3">
+            <span className="text-zinc-500 mt-0.5">4.</span>
+            <span>
+              A cada 3 dias de sequência você ganha 1 escudo 🛡️. Se perder uma partida, pode usá-lo para não perder o streak.
+            </span>
+          </li>
         </ul>
 
         <button

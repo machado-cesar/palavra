@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
     let timerEndsAt: string | null = null
     let streakSaved = false
     let tokenEarned = false
+    let response_streakCanBeSaved = false
+    let response_prevStreak = 0
+    let response_tokens = 0
 
     if (won || gameOver) {
       // Jogo terminou — calcular pontuação final
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
 
         const newStreak = updatedUser?.current_streak ?? 0
         if (newStreak > 0 && newStreak % 3 === 0) {
-          const newTokens = Math.min((updatedUser?.tokens ?? 0) + 1, 5)
+          const newTokens = Math.min((updatedUser?.tokens ?? 0) + 1, 3)
           await supabaseAdmin
             .from('users')
             .update({ tokens: newTokens })
@@ -148,7 +151,7 @@ export async function POST(request: NextRequest) {
           tokenEarned = true
         }
       } else {
-        // Derrota ou vitória com skips — tentar gastar token para preservar streak
+        // Derrota ou vitória com skips — resetar streak e oferecer recuperação via token
         const { data: userData } = await supabaseAdmin
           .from('users')
           .select('current_streak, tokens')
@@ -158,19 +161,18 @@ export async function POST(request: NextRequest) {
         const currentStreak = userData?.current_streak ?? 0
         const currentTokens = userData?.tokens ?? 0
 
+        // Sempre reseta o streak — token será gasto só se o usuário confirmar no modal
+        await supabaseAdmin
+          .from('users')
+          .update({ current_streak: 0, last_played_at: today })
+          .eq('id', user.id)
+
+        // Se tinha streak e tem tokens, sinaliza que pode recuperar
         if (currentTokens > 0 && currentStreak > 0) {
-          // Gasta token, preserva streak
-          await supabaseAdmin
-            .from('users')
-            .update({ tokens: currentTokens - 1, last_played_at: today })
-            .eq('id', user.id)
-          streakSaved = true
-        } else {
-          // Sem tokens — reseta streak
-          await supabaseAdmin
-            .from('users')
-            .update({ current_streak: 0, last_played_at: today })
-            .eq('id', user.id)
+          streakSaved = false
+          response_streakCanBeSaved = true
+          response_prevStreak = currentStreak
+          response_tokens = currentTokens
         }
       }
 
@@ -209,6 +211,9 @@ export async function POST(request: NextRequest) {
       correctWord: gameOver && !won ? answer : undefined,
       streakSaved: streakSaved || undefined,
       tokenEarned: tokenEarned || undefined,
+      streakCanBeSaved: response_streakCanBeSaved || undefined,
+      prevStreak: response_prevStreak || undefined,
+      tokens: response_tokens || undefined,
     }
 
     return NextResponse.json({ success: true, data: response })
