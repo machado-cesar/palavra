@@ -59,15 +59,15 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number, streak
     ? `✅ ${attempts.length}/6 tentativa${attempts.length > 1 ? 's' : ''} · +${score} pts`
     : `❌ Não acertei hoje`
 
-  if (won && rank) resultLine += ` · ${rank}º lugar`
+  if (won && rank) resultLine += ` · *${rank}º lugar*`
 
   let challengeLine = ''
   if (won && rank && streak > 1) {
-    challengeLine = `\n🔥 ${streak} dias seguidos. Consegue me superar?`
+    challengeLine = `\n\n*🔥 ${streak} dias seguidos. Consegue me superar?*`
   } else if (won && rank) {
-    challengeLine = `\nConsegue me superar?`
+    challengeLine = `\n\n*Consegue me superar?*`
   } else if (won && streak > 1) {
-    challengeLine = `\n🔥 ${streak} dias seguidos. Entra e tenta me parar.`
+    challengeLine = `\n\n*🔥 ${streak} dias seguidos. Entra e tenta me parar.*`
   }
 
   return `char[5] — ${today}\n${resultLine}${challengeLine}\n\n${grid}\n\nhttps://char5.com.br`
