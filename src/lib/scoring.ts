@@ -1,28 +1,21 @@
 import { SCORING } from '@/types'
 
 /**
- * Calcula a pontuação máxima disponível com base nos erros acumulados.
- * 0 erros → 1500, 1 erro → 1300, 2 erros → 1100, ..., 5 erros → 500
+ * Penalidade por uma tentativa errada.
+ * 1º erro: -100 pts. Erros seguintes: -200 pts.
  */
-export function getMaxScoreForAttempt(wrongAttempts: number): number {
-  return Math.max(SCORING.MAX_SCORE - wrongAttempts * SCORING.PENALTY_PER_WRONG, 0)
+export function getPenalty(wrongAttemptsBefore: number): number {
+  return wrongAttemptsBefore === 0 ? SCORING.PENALTY_FIRST_WRONG : SCORING.PENALTY_PER_WRONG
 }
 
 /**
- * Calcula a pontuação final ao acertar, descontando erros e skips acumulados.
+ * Calcula os pontos recuperados com base no tempo decorrido desde recoveryStartedAt.
+ * Máximo de RECOVERY_DURATION segundos → MAX_RECOVERY pontos.
  */
-export function calculateFinalScore(wrongAttempts: number, skips: number): number {
-  const base = getMaxScoreForAttempt(wrongAttempts)
-  const skipPenalty = skips * SCORING.PENALTY_PER_SKIP
-  return Math.max(base - skipPenalty, SCORING.MIN_SCORE)
-}
-
-/**
- * Verifica se o timer deve ser ativado após uma tentativa errada.
- * O timer ativa a partir da 2ª tentativa errada.
- */
-export function shouldActivateTimer(wrongAttempts: number): boolean {
-  return wrongAttempts >= SCORING.ATTEMPTS_BEFORE_TIMER + 1
+export function getRecoveredPoints(recoveryStartedAt: string): number {
+  const elapsedMs = Date.now() - new Date(recoveryStartedAt).getTime()
+  const elapsedSeconds = Math.floor(elapsedMs / 1000)
+  return Math.min(elapsedSeconds, SCORING.RECOVERY_DURATION)
 }
 
 /**

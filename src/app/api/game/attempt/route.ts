@@ -6,17 +6,15 @@ import {
   getActiveSession,
   setActiveSession,
   clearActiveSession,
-  setTimer,
   updateRanking,
 } from '@/lib/redis'
 import { evaluateAttempt, normalizeWord, isValidGuess } from '@/lib/words'
 import {
-  shouldActivateTimer,
+  getPenalty,
+  getRecoveredPoints,
   isGameOver,
-  calculateFinalScore,
-  getMaxScoreForAttempt,
 } from '@/lib/scoring'
-import { SCORING, AttemptResponse, getTimerMinutes } from '@/types'
+import { SCORING, AttemptResponse } from '@/types'
 import { getTodayBRT } from '@/lib/date'
 
 export async function POST(request: NextRequest) {
@@ -39,14 +37,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tentativa inválida' }, { status: 400 })
     }
 
-
-    // Buscar sessão ativa
     const activeSession = await getActiveSession(user.id)
     if (!activeSession) {
       return NextResponse.json({ error: 'Nenhuma sessão ativa' }, { status: 404 })
     }
 
-    // Buscar a palavra correta (nunca enviada ao cliente)
     const { data: wordData, error: wordError } = await supabaseAdmin
       .from('words')
       .select('word')
@@ -62,47 +57,52 @@ export async function POST(request: NextRequest) {
     const result = evaluateAttempt(normalizedGuess, answer)
     const won = normalizedGuess === answer
 
-    // Atualizar contadores
     const newAttemptsCount = activeSession.attemptsCount + 1
     const newWrongAttempts = won ? activeSession.wrongAttempts : activeSession.wrongAttempts + 1
     const gameOver = !won && isGameOver(newAttemptsCount)
 
-    // Montar objeto da tentativa
     const attempt = {
       word: normalizedGuess,
       result,
       timestamp: new Date().toISOString(),
     }
 
-    // Buscar sessão no banco para pegar o histórico completo
     const { data: dbSession } = await supabaseAdmin
       .from('game_sessions')
-      .select('attempts, timer_skips')
+      .select('attempts')
       .eq('id', activeSession.sessionId)
       .single()
 
     const allAttempts = [...(dbSession?.attempts || []), attempt]
-    const timerSkips = dbSession?.timer_skips || 0
 
-    // Score máximo exibido: desconta erros acumulados E skips já realizados
-    const newMaxScore = Math.max(
-      getMaxScoreForAttempt(newWrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
-      SCORING.MIN_SCORE
-    )
+    // ─── Calcular pontuação com recovery ──────────────────────────────────────
+
+    // Pontos recuperados desde o último erro (se houver)
+    const recoveredPoints = activeSession.recoveryStartedAt
+      ? getRecoveredPoints(activeSession.recoveryStartedAt)
+      : 0
+
+    // Score após recovery
+    const scoreAfterRecovery = activeSession.currentMaxScore + recoveredPoints
+
+    // Penalidade do erro atual (se errou)
+    const penalty = won ? 0 : getPenalty(activeSession.wrongAttempts)
+
+    // Novo score máximo
+    const newMaxScore = Math.max(scoreAfterRecovery - penalty, 0)
+
+    // Recovery começa imediatamente após erro (se o jogo continua)
+    const newRecoveryStartedAt = (!won && !gameOver) ? new Date().toISOString() : undefined
 
     let finalScore = 0
-    let timerEndsAt: string | null = null
-    let streakSaved = false
     let tokenEarned = false
     let response_streakCanBeSaved = false
     let response_prevStreak = 0
     let response_tokens = 0
 
     if (won || gameOver) {
-      // Jogo terminou — calcular pontuação final
-      finalScore = won ? calculateFinalScore(newWrongAttempts, timerSkips) : 0
+      finalScore = won ? newMaxScore : 0
 
-      // Atualizar sessão no banco
       await supabaseAdmin
         .from('game_sessions')
         .update({
@@ -114,27 +114,19 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', activeSession.sessionId)
 
-      // Atualizar placar diário
       const today = getTodayBRT()
       await supabaseAdmin
         .from('leaderboard_daily')
-        .upsert({
-          user_id: user.id,
-          date: today,
-          score: finalScore,
-        })
+        .upsert({ user_id: user.id, date: today, score: finalScore })
 
-      // Atualizar ranking no Redis
       if (won) {
         await updateRanking(user.id, finalScore)
       }
 
-      // Atualizar streak do usuário (com lógica de tokens)
-      if (won && timerSkips === 0) {
-        // Vitória perfeita — incrementa streak
+      // Streak: qualquer vitória conta
+      if (won) {
         await supabaseAdmin.rpc('increment_streak', { user_id: user.id })
 
-        // Verificar se ganhou um token (a cada 3 dias de streak)
         const { data: updatedUser } = await supabaseAdmin
           .from('users')
           .select('current_streak, tokens')
@@ -151,7 +143,7 @@ export async function POST(request: NextRequest) {
           tokenEarned = true
         }
       } else {
-        // Derrota ou vitória com skips — resetar streak e oferecer recuperação via token
+        // Derrota — resetar streak e oferecer recovery via token
         const { data: userData } = await supabaseAdmin
           .from('users')
           .select('current_streak, tokens')
@@ -161,25 +153,21 @@ export async function POST(request: NextRequest) {
         const currentStreak = userData?.current_streak ?? 0
         const currentTokens = userData?.tokens ?? 0
 
-        // Sempre reseta o streak — token será gasto só se o usuário confirmar no modal
         await supabaseAdmin
           .from('users')
           .update({ current_streak: 0, last_played_at: today })
           .eq('id', user.id)
 
-        // Se tinha streak e tem tokens, sinaliza que pode recuperar
         if (currentTokens > 0 && currentStreak > 0) {
-          streakSaved = false
           response_streakCanBeSaved = true
           response_prevStreak = currentStreak
           response_tokens = currentTokens
         }
       }
 
-      // Limpar sessão ativa do Redis
       await clearActiveSession(user.id)
     } else {
-      // Jogo continua — salvar tentativa e ativar timer se necessário
+      // Jogo continua — salvar tentativa e atualizar sessão
       await supabaseAdmin
         .from('game_sessions')
         .update({
@@ -188,17 +176,12 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', activeSession.sessionId)
 
-      // Ativar timer se necessário (progressivo: 2min→5min→10min→30min)
-      if (shouldActivateTimer(newWrongAttempts)) {
-        timerEndsAt = await setTimer(user.id, getTimerMinutes(timerSkips))
-      }
-
-      // Atualizar sessão no Redis
       await setActiveSession(user.id, {
         ...activeSession,
         attemptsCount: newAttemptsCount,
         currentMaxScore: newMaxScore,
         wrongAttempts: newWrongAttempts,
+        recoveryStartedAt: newRecoveryStartedAt,
       })
     }
 
@@ -207,13 +190,12 @@ export async function POST(request: NextRequest) {
       score: won || gameOver ? finalScore : newMaxScore,
       won,
       gameOver,
-      timerEndsAt,
       correctWord: gameOver && !won ? answer : undefined,
-      streakSaved: streakSaved || undefined,
       tokenEarned: tokenEarned || undefined,
       streakCanBeSaved: response_streakCanBeSaved || undefined,
       prevStreak: response_prevStreak || undefined,
       tokens: response_tokens || undefined,
+      recoveryStartedAt: newRecoveryStartedAt,
     }
 
     return NextResponse.json({ success: true, data: response })

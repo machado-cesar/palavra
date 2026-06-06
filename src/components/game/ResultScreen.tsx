@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Attempt, SCORING } from '@/types'
+import { Attempt } from '@/types'
 
 interface ResultScreenProps {
   won: boolean
   score: number
-  skips: number
   attempts: Attempt[]
   streak: number
   correctWord?: string
@@ -73,7 +72,7 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number, streak
   return `char[5] — ${today}\n${resultLine}${challengeLine}\n\n${grid}\n\nhttps://char5.com.br`
 }
 
-export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, authToken, onClose }: ResultScreenProps) {
+export default function ResultScreen({ won, score, attempts, streak, correctWord, authToken, onClose }: ResultScreenProps) {
   const countdown = useNextWordCountdown()
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -102,8 +101,6 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
     }
     fetchRank()
   }, [won, authToken])
-
-  const wrongAttempts = won ? attempts.length - 1 : attempts.length
 
   async function handleShare() {
     const text = buildShareText(attempts, won, score, streak, userRank)
@@ -171,33 +168,16 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
           )}
         </div>
 
-        {/* Breakdown da pontuação (só quando ganhou) */}
+        {/* Pontuação final */}
         {won && (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Pontuação base</span>
-              <span className="text-zinc-300">+{SCORING.MAX_SCORE}</span>
+              <span className="text-zinc-400">
+                {attempts.length === 1
+                  ? 'Acertou de primeira!'
+                  : `${attempts.length - 1} erro${attempts.length - 1 > 1 ? 's' : ''} · pontos recuperados incluídos`}
+              </span>
             </div>
-            {wrongAttempts > 0 && (
-              <div className="flex justify-between">
-                <span className="text-zinc-400">
-                  {wrongAttempts} tentativa{wrongAttempts > 1 ? 's' : ''} errada{wrongAttempts > 1 ? 's' : ''}
-                </span>
-                <span className="text-red-400">
-                  −{wrongAttempts * SCORING.PENALTY_PER_WRONG}
-                </span>
-              </div>
-            )}
-            {skips > 0 && (
-              <div className="flex justify-between">
-                <span className="text-zinc-400">
-                  {skips} skip{skips > 1 ? 's' : ''} de timer
-                </span>
-                <span className="text-yellow-400">
-                  −{skips * SCORING.PENALTY_PER_SKIP}
-                </span>
-              </div>
-            )}
             <div className="border-t border-zinc-600 pt-2 flex justify-between items-center">
               <span className="font-semibold">Total</span>
               <span className="text-2xl font-bold text-green-400">+{score}</span>

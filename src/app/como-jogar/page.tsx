@@ -117,48 +117,18 @@ export default function ComoJogarPage() {
         </div>
       </Section>
 
-      {/* Timer */}
-      <Section title="Timer progressivo">
+      {/* Recuperação de pontos */}
+      <Section title="Recuperação de pontos">
         <p className="text-zinc-300 text-sm leading-relaxed">
-          A partir do <strong className="text-white">2º erro</strong>, um timer de espera de 2 minutos é ativado antes da próxima tentativa.
-          O timer sempre começa em 2 minutos — mas cada skip que você der aumenta o tempo do próximo:
-        </p>
-        <div className="w-full rounded-xl border border-zinc-700 overflow-hidden text-sm">
-          <div className="grid grid-cols-2 bg-zinc-800 text-zinc-400 text-xs uppercase tracking-wide px-4 py-2">
-            <span>Skips já usados</span>
-            <span className="text-right">Próximo timer</span>
-          </div>
-          {[
-            { skips: '0 skips', tempo: '2 minutos' },
-            { skips: '1 skip',  tempo: '5 minutos' },
-            { skips: '2 skips', tempo: '10 minutos' },
-            { skips: '3 ou mais', tempo: '30 minutos' },
-          ].map(({ skips, tempo }, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-2 px-4 py-3 border-t border-zinc-700/50 text-zinc-300"
-            >
-              <span>{skips}</span>
-              <span className="text-right text-zinc-400">{tempo}</span>
-            </div>
-          ))}
-        </div>
-        <p className="text-zinc-500 text-xs">
-          Cada skip tem uma penalidade de <span className="text-white">−100 pontos</span>.
-        </p>
-      </Section>
-
-      {/* Pontuação */}
-      <Section title="Pontuação">
-        <p className="text-zinc-300 text-sm leading-relaxed">
-          Você começa com <strong className="text-white">1.500 pontos</strong>. Cada erro ou skip reduz essa pontuação:
+          Ao errar uma tentativa, você perde pontos — mas pode recuperar parte deles esperando antes da próxima tentativa.
+          A recuperação acontece na barra de pontuação, que você vê crescer em tempo real.
         </p>
         <div className="w-full rounded-xl border border-zinc-700 overflow-hidden text-sm">
           {[
-            { label: 'Pontuação base', valor: '1.500 pts', cor: 'text-zinc-200' },
-            { label: 'Por cada tentativa errada', valor: '−200 pts', cor: 'text-red-400' },
-            { label: 'Por cada skip de timer',    valor: '−100 pts', cor: 'text-red-400' },
-            { label: 'Mínimo ao acertar',         valor: '100 pts',  cor: 'text-green-400' },
+            { label: '1º erro',             valor: '−100 pts',  cor: 'text-red-400' },
+            { label: 'Erros seguintes',      valor: '−200 pts',  cor: 'text-red-400' },
+            { label: 'Máximo recuperável',   valor: '+100 pts',  cor: 'text-green-400' },
+            { label: 'Tempo para recuperar', valor: '100 seg',   cor: 'text-zinc-300' },
           ].map(({ label, valor, cor }, i) => (
             <div
               key={i}
@@ -166,6 +136,36 @@ export default function ComoJogarPage() {
             >
               <span>{label}</span>
               <span className={`font-semibold tabular-nums ${cor}`}>{valor}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-zinc-500 text-xs">
+          Você pode tentar de novo a qualquer momento sem esperar. A espera só serve para recuperar pontos.
+        </p>
+      </Section>
+
+      {/* Pontuação */}
+      <Section title="Pontuação">
+        <p className="text-zinc-300 text-sm leading-relaxed">
+          Você começa com <strong className="text-white">1.500 pontos</strong>. Erros reduzem essa pontuação, mas a espera recupera parte dela.
+          Acertar na 2ª tentativa esperando os 100 segundos completos devolve os 1.500 pontos integrais.
+        </p>
+        <div className="w-full rounded-xl border border-zinc-700 overflow-hidden text-sm">
+          <div className="grid grid-cols-2 bg-zinc-800 text-zinc-400 text-xs uppercase tracking-wide px-4 py-2">
+            <span>Acerta na tentativa</span>
+            <span className="text-right">Máximo possível</span>
+          </div>
+          {[
+            { tentativa: '1ª',  max: '1.500 pts' },
+            { tentativa: '2ª',  max: '1.500 pts (esperando)' },
+            { tentativa: '3ª',  max: '1.400 pts' },
+            { tentativa: '4ª',  max: '1.300 pts' },
+            { tentativa: '5ª',  max: '1.200 pts' },
+            { tentativa: '6ª',  max: '1.100 pts' },
+          ].map(({ tentativa, max }, i) => (
+            <div key={i} className="grid grid-cols-2 px-4 py-3 border-t border-zinc-700/50 text-zinc-300">
+              <span>{tentativa}</span>
+              <span className="text-right text-zinc-400">{max}</span>
             </div>
           ))}
         </div>
@@ -178,12 +178,11 @@ export default function ComoJogarPage() {
       <Section title="Sequência (streak)">
         <p className="text-zinc-300 text-sm leading-relaxed">
           Jogar todos os dias mantém sua <strong className="text-white">sequência 🔥</strong>. O número aparece
-          no header e representa quantos dias consecutivos você jogou.
+          no topo e representa quantos dias consecutivos você acertou a palavra.
         </p>
         <p className="text-zinc-300 text-sm leading-relaxed">
-          A sequência só é mantida se você acertar a palavra <strong className="text-white">sem usar nenhum skip</strong>.
-          Usar skip, perder todas as 6 tentativas ou não jogar no dia faz a sequência voltar a zero —
-          a menos que um token a proteja.
+          Qualquer vitória conta para o streak. Perder todas as 6 tentativas ou não jogar no dia
+          faz a sequência voltar a zero — a menos que um escudo a proteja.
         </p>
       </Section>
 

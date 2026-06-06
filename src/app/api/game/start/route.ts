@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getTimer, getActiveSession, setActiveSession } from '@/lib/redis'
+import { getActiveSession, setActiveSession } from '@/lib/redis'
 import { SCORING } from '@/types'
 import { getTodayBRT } from '@/lib/date'
 
@@ -17,15 +17,6 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     if (authError || !user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
-
-    // Verificar se há timer ativo
-    const timerEndsAt = await getTimer(user.id)
-    if (timerEndsAt && new Date(timerEndsAt) > new Date()) {
-      return NextResponse.json({
-        error: 'Timer ativo',
-        data: { timerEndsAt }
-      }, { status: 429 })
     }
 
     // Verificar se streak precisa ser resetado (jogador faltou dias sem usar token)

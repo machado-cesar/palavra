@@ -5,28 +5,10 @@ export const redis = Redis.fromEnv()
 // ─── Chaves ───────────────────────────────────────────────────────────────────
 
 export const keys = {
-  timer: (userId: string) => `timer:${userId}`,
   session: (userId: string) => `session:active:${userId}`,
   rankingDaily: (date: string) => `ranking:daily:${date}`,
   rankingWeekly: (week: string) => `ranking:weekly:${week}`,
   rankingAllTime: () => `ranking:alltime`,
-}
-
-// ─── Timer ────────────────────────────────────────────────────────────────────
-
-export async function setTimer(userId: string, minutes: number): Promise<string> {
-  const seconds = minutes * 60
-  const endsAt = new Date(Date.now() + seconds * 1000).toISOString()
-  await redis.set(keys.timer(userId), endsAt, { ex: seconds })
-  return endsAt
-}
-
-export async function getTimer(userId: string): Promise<string | null> {
-  return redis.get<string>(keys.timer(userId))
-}
-
-export async function clearTimer(userId: string): Promise<void> {
-  await redis.del(keys.timer(userId))
 }
 
 // ─── Sessão ativa ─────────────────────────────────────────────────────────────
@@ -38,10 +20,10 @@ export interface ActiveSession {
   currentMaxScore: number
   wrongAttempts: number
   startedAt: string
+  recoveryStartedAt?: string  // timestamp do início da recuperação após erro
 }
 
 export async function setActiveSession(userId: string, data: ActiveSession): Promise<void> {
-  // Expira em 24h — sessão dura no máximo um dia
   await redis.set(keys.session(userId), JSON.stringify(data), { ex: 86400 })
 }
 
@@ -59,7 +41,7 @@ export async function clearActiveSession(userId: string): Promise<void> {
 
 export function getTodayKey(): string {
   const BRT_OFFSET_MS = 3 * 60 * 60 * 1000
-  return new Date(Date.now() - BRT_OFFSET_MS).toISOString().split('T')[0]  // YYYY-MM-DD em BRT
+  return new Date(Date.now() - BRT_OFFSET_MS).toISOString().split('T')[0]
 }
 
 export function getWeekKey(): string {
@@ -79,7 +61,6 @@ export async function updateRanking(userId: string, score: number): Promise<void
     redis.zadd(keys.rankingAllTime(), { score, member: userId }),
   ])
 
-  // Expira rankings diários após 7 dias
   await redis.expire(keys.rankingDaily(today), 7 * 86400)
 }
 

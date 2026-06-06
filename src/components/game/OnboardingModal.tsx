@@ -35,8 +35,7 @@ export default function OnboardingModal({ onConfirm }: OnboardingModalProps) {
           <li className="flex gap-3">
             <span className="text-zinc-500 mt-0.5">2.</span>
             <span>
-              Se um timer aparecer, você pode <span className="text-white font-medium">esperar</span> (mantém seus pontos máximos)
-              ou <span className="text-white font-medium">pular</span> (perde pontos).
+              Ao errar, você perde pontos — mas pode <span className="text-white font-medium">recuperar até 100</span> esperando antes da próxima tentativa. Quanto mais espera, mais recupera.
             </span>
           </li>
           <li className="flex gap-3">

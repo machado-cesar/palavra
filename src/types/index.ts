@@ -15,7 +15,7 @@ export interface Attempt {
 
 // ─── Sessão de jogo ───────────────────────────────────────────────────────────
 
-export type GameStatus = 'idle' | 'playing' | 'won' | 'lost' | 'waiting_timer'
+export type GameStatus = 'idle' | 'playing' | 'won' | 'lost'
 
 export interface GameSession {
   id: string
@@ -88,13 +88,12 @@ export interface AttemptResponse {
   score: number
   won: boolean
   gameOver: boolean
-  timerEndsAt: string | null
-  correctWord?: string        // revelada apenas quando gameOver && !won
-  streakSaved?: boolean       // legado — não usado ativamente
-  tokenEarned?: boolean       // ganhou um token novo nesse jogo (streak múltiplo de 3)
-  streakCanBeSaved?: boolean  // jogador pode gastar token para recuperar o streak
-  prevStreak?: number         // valor do streak antes do reset
-  tokens?: number             // tokens disponíveis no momento
+  correctWord?: string
+  tokenEarned?: boolean
+  streakCanBeSaved?: boolean
+  prevStreak?: number
+  tokens?: number
+  recoveryStartedAt?: string  // timestamp para o cliente animar o recovery
 }
 
 export interface SkipResponse {
@@ -107,18 +106,9 @@ export interface SkipResponse {
 
 export const SCORING = {
   MAX_SCORE: 1500,
-  ATTEMPTS_BEFORE_TIMER: 1,   // timer ativa após a 2ª tentativa errada (índice 1)
   MAX_ATTEMPTS: 6,
-  PENALTY_PER_WRONG: 200,     // -200 pts por tentativa errada
-  PENALTY_PER_SKIP: 100,      // -100 pts por pular o timer
-  MIN_SCORE: 100,             // pontuação mínima ao acertar
+  PENALTY_FIRST_WRONG: 100,   // -100 pts na 1ª tentativa errada
+  PENALTY_PER_WRONG: 200,     // -200 pts nas tentativas erradas seguintes
+  RECOVERY_DURATION: 100,     // segundos para recuperação máxima
+  MAX_RECOVERY: 100,          // pts máximos recuperáveis por espera
 } as const
-
-// Timer progressivo por número de skips já realizados
-// 0 skips → 2min, 1 skip → 5min, 2 skips → 10min, 3+ skips → 30min
-export function getTimerMinutes(skips: number): number {
-  if (skips === 0) return 2
-  if (skips === 1) return 5
-  if (skips === 2) return 10
-  return 30
-}

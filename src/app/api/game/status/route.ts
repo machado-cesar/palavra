@@ -2,9 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getTimer, getActiveSession } from '@/lib/redis'
+import { getActiveSession } from '@/lib/redis'
 import { SCORING } from '@/types'
-import { getMaxScoreForAttempt } from '@/lib/scoring'
 import { getTodayBRT } from '@/lib/date'
 
 export async function GET(request: NextRequest) {
@@ -99,34 +98,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Verificar timer ativo
-    const timerEndsAt = await getTimer(user.id)
-
     // Verificar sessão ativa em andamento
     const activeSession = await getActiveSession(user.id)
 
     // Buscar tentativas já realizadas no banco
     let existingAttempts: unknown[] = []
-    let timerSkips = 0
     if (activeSession) {
       const { data: dbSession } = await supabaseAdmin
         .from('game_sessions')
-        .select('attempts, timer_skips')
+        .select('attempts')
         .eq('id', activeSession.sessionId)
         .single()
 
       existingAttempts = dbSession?.attempts || []
-      timerSkips = dbSession?.timer_skips || 0
     }
-
-    // Recalcular maxPossibleScore a partir dos dados reais (erros + skips)
-    // Evita mostrar valor desatualizado caso o Redis tenha sido salvo com MAX_SCORE antigo
-    const computedMaxScore = activeSession
-      ? Math.max(
-          getMaxScoreForAttempt(activeSession.wrongAttempts) - timerSkips * SCORING.PENALTY_PER_SKIP,
-          SCORING.MIN_SCORE
-        )
-      : SCORING.MAX_SCORE
 
     const isReturning = !!userProfile?.last_played_at
 
@@ -138,8 +123,8 @@ export async function GET(request: NextRequest) {
         usernameConfirmed,
         streakAtRisk,
         isReturning,
-        canPlay: !timerEndsAt || new Date(timerEndsAt) <= new Date(),
-        timerEndsAt: timerEndsAt,
+        canPlay: true,
+        timerEndsAt: null,
         completedSession: null,
         currentSession: activeSession ? {
           id: activeSession.sessionId,
@@ -147,10 +132,11 @@ export async function GET(request: NextRequest) {
           wordId: activeSession.wordId,
           startedAt: activeSession.startedAt,
           score: 0,
-          maxPossibleScore: computedMaxScore,
-          timerSkips: timerSkips,
+          maxPossibleScore: activeSession.currentMaxScore,
+          timerSkips: 0,
           tokenUsed: false,
           attempts: existingAttempts,
+          recoveryStartedAt: activeSession.recoveryStartedAt ?? null,
         } : null,
       },
     })

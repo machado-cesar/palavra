@@ -1,17 +1,16 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabase'
 import WordGrid from '@/components/game/WordGrid'
 import Keyboard from '@/components/game/Keyboard'
 import ScoreDisplay from '@/components/game/ScoreDisplay'
-import TimerBar from '@/components/game/TimerBar'
-import SkipModal from '@/components/game/SkipModal'
+import RecoveryBar from '@/components/game/RecoveryBar'
 import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
 import OnboardingModal from '@/components/game/OnboardingModal'
 import StreakRecoveryModal from '@/components/game/StreakRecoveryModal'
-import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
+import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
 
@@ -29,11 +28,9 @@ export default function GamePage() {
   const [currentLetters, setCurrentLetters] = useState<string[]>(['', '', '', '', ''])
   const [cursorPos, setCursorPos] = useState(0)
   const [keyboardState, setKeyboardState] = useState<Record<string, LetterStatus>>({})
-  const [currentMaxScore, setCurrentMaxScore] = useState(SCORING.MAX_SCORE)
-  const [timerEndsAt, setTimerEndsAt] = useState<string | null>(null)
-  const [skips, setSkips] = useState(0)
-  const [showSkipModal, setShowSkipModal] = useState(false)
-  const [isSkipping, setIsSkipping] = useState(false)
+  const [currentMaxScore, setCurrentMaxScore] = useState(1500)
+  const [recoveryStartedAt, setRecoveryStartedAt] = useState<string | null>(null)
+  const [recoveredPoints, setRecoveredPoints] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)  // bloqueia duplo envio
   const [message, setMessage] = useState('')
   const [correctWord, setCorrectWord] = useState<string | undefined>()
@@ -98,7 +95,7 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { timerEndsAt: timer, currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning } = json.data
+      const { currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning } = json.data
       if (userStreak) setStreak(userStreak)
       if (confirmed) setUsernameConfirmed(true)
       if (userTokens) setTokens(userTokens)
@@ -117,7 +114,6 @@ export default function GamePage() {
         setAttempts(completedSession.attempts)
         setKeyboardState(rebuiltKeyboard)
         setCurrentMaxScore(completedSession.score || completedSession.maxPossibleScore)
-        setSkips(completedSession.timerSkips)
         setStatus(completedSession.won ? 'won' : 'lost')
         if (!completedSession.won && completedSession.correctWord) {
           setCorrectWord(completedSession.correctWord)
@@ -130,7 +126,6 @@ export default function GamePage() {
       function restoreSessionState(session: typeof currentSession) {
         if (!session) return
         setCurrentMaxScore(session.maxPossibleScore)
-        setSkips(session.timerSkips || 0)
         if (session.attempts?.length > 0) {
           const rebuiltKeyboard: Record<string, LetterStatus> = {}
           for (const attempt of session.attempts) {
@@ -146,17 +141,12 @@ export default function GamePage() {
         }
       }
 
-      // Timer ativo (jogo em pausa)
-      if (timer && new Date(timer) > new Date()) {
-        restoreSessionState(currentSession)
-        setTimerEndsAt(timer)
-        setStatus('waiting_timer')
-        return
-      }
-
       // Sessão em andamento (retornou no meio do jogo)
       if (currentSession) {
         restoreSessionState(currentSession)
+        if (currentSession.recoveryStartedAt) {
+          setRecoveryStartedAt(currentSession.recoveryStartedAt)
+        }
         setStatus('playing')
         return
       }
@@ -212,8 +202,7 @@ export default function GamePage() {
     setCurrentLetters(['', '', '', '', ''])
     setCursorPos(0)
     setKeyboardState({})
-    setCurrentMaxScore(SCORING.MAX_SCORE)
-    setSkips(0)
+    setCurrentMaxScore(1500)
     trackEvent('game_started')
   }
 
@@ -221,7 +210,7 @@ export default function GamePage() {
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (status !== 'playing' || isSubmitting) return
+      if (status !== 'playing' || isSubmitting || showStreakRecovery || showOnboarding) return
       if (e.key === 'Enter') handleEnter()
       else if (e.key === 'Backspace') handleBackspace()
       else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleKey(e.key.toUpperCase())
@@ -229,7 +218,7 @@ export default function GamePage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [status, currentLetters, cursorPos, attempts, isSubmitting])
+  }, [status, currentLetters, cursorPos, attempts, isSubmitting, showStreakRecovery, showOnboarding])
 
   function handleKey(key: string) {
     setCurrentLetters(prev => {
@@ -281,6 +270,8 @@ export default function GamePage() {
     }
 
     setIsSubmitting(true)
+    setRecoveryStartedAt(null)
+    setRecoveredPoints(0)
 
     const res = await fetch('/api/game/attempt', {
       method: 'POST',
@@ -300,7 +291,7 @@ export default function GamePage() {
       return
     }
 
-    const { result, score, won, gameOver, timerEndsAt: timer } = json.data
+    const { result, score, won, gameOver } = json.data
 
     const newAttempt: Attempt = {
       word: normalized,
@@ -332,10 +323,10 @@ export default function GamePage() {
     if (won) {
       setCurrentMaxScore(score)
       setStatus('won')
-      if (skips === 0) setStreak(prev => prev + 1)
+      setStreak(prev => prev + 1)
       if (json.data.tokenEarned) {
-        setTokens(prev => Math.min(prev + 1, 5))
-        setMessage('🪙 +1 Token ganho pela sequência!')
+        setTokens(prev => Math.min(prev + 1, 3))
+        setMessage('🛡️ +1 Escudo ganho pela sequência!')
         setTimeout(() => setMessage(''), 3000)
       }
       proceedAfterGame()
@@ -356,39 +347,10 @@ export default function GamePage() {
       }
     } else {
       setCurrentMaxScore(score)
-      if (timer) {
-        setTimerEndsAt(timer)
-        setStatus('waiting_timer')
-        trackEvent('timer_activated')
+      if (json.data.recoveryStartedAt) {
+        setRecoveryStartedAt(json.data.recoveryStartedAt)
       }
     }
-  }
-
-  // ─── Skip ─────────────────────────────────────────────────────────────────
-
-  async function handleSkipConfirm() {
-    if (!authToken) return
-    setIsSkipping(true)
-
-    const res = await fetch('/api/game/skip', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-    const json = await res.json()
-    setIsSkipping(false)
-    setShowSkipModal(false)
-
-    if (!json.success) {
-      setMessage(json.error || 'Erro ao pular timer')
-      return
-    }
-
-    const { penaltyApplied, newMaxScore } = json.data
-    setCurrentMaxScore(newMaxScore)
-    setSkips(prev => prev + 1)
-    setTimerEndsAt(null)
-    setStatus('playing')
-    trackEvent('timer_skipped', { penalty: penaltyApplied })
   }
 
   // ─── Restauração de streak ─────────────────────────────────────────────────
@@ -470,11 +432,6 @@ export default function GamePage() {
     }
   }
 
-  const handleTimerExpire = useCallback(() => {
-    setTimerEndsAt(null)
-    setStatus('playing')
-  }, [])
-
   // ─── Render ───────────────────────────────────────────────────────────────
 
   if (isLoading) {
@@ -496,7 +453,7 @@ export default function GamePage() {
 
         <div className="flex items-center gap-3">
           {tokens > 0 && (
-            <span className="text-sm font-semibold text-zinc-300 tabular-nums" title="Tokens de proteção de streak">
+            <span className="text-sm font-semibold text-zinc-300 tabular-nums" title="Escudos de proteção de streak">
               🛡️ {tokens}
             </span>
           )}
@@ -515,7 +472,7 @@ export default function GamePage() {
       </header>
 
       {/* Pontuação */}
-      <ScoreDisplay currentMaxScore={currentMaxScore} skips={skips} />
+      <ScoreDisplay currentMaxScore={currentMaxScore + recoveredPoints} />
 
       {/* Toasts flutuantes — não deslocam o layout */}
       {message && (
@@ -550,7 +507,6 @@ export default function GamePage() {
         <ResultScreen
           won={status === 'won'}
           score={currentMaxScore}
-          skips={skips}
           attempts={attempts}
           streak={streak}
           correctWord={correctWord}
@@ -559,39 +515,25 @@ export default function GamePage() {
         />
       )}
 
-      {/* Timer */}
-      {status === 'waiting_timer' && timerEndsAt && (
-        <TimerBar
-          timerEndsAt={timerEndsAt}
-          onExpire={handleTimerExpire}
-          onSkip={() => setShowSkipModal(true)}
-          skipPenalty={SCORING.PENALTY_PER_SKIP}
-          isSkipping={isSkipping}
+      {/* Recovery bar — visível enquanto recuperação ativa */}
+      {status === 'playing' && recoveryStartedAt && (
+        <RecoveryBar
+          recoveryStartedAt={recoveryStartedAt}
+          onRecoveryUpdate={setRecoveredPoints}
         />
       )}
 
-      {/* Teclado — visível durante o jogo e o timer; desabilitado no timer e durante submissão */}
-      {(status === 'playing' || status === 'waiting_timer') && (
+      {/* Teclado */}
+      {status === 'playing' && (
         <div className="w-full mt-auto pt-1">
           <Keyboard
             keyboardState={keyboardState}
             onKey={handleKey}
             onEnter={handleEnter}
             onBackspace={handleBackspace}
-            disabled={isSubmitting || status === 'waiting_timer'}
+            disabled={isSubmitting}
           />
         </div>
-      )}
-
-      {/* Modal de skip */}
-      {showSkipModal && (
-        <SkipModal
-          currentMaxScore={currentMaxScore}
-          skipPenalty={SCORING.PENALTY_PER_SKIP}
-          onConfirm={handleSkipConfirm}
-          onCancel={() => setShowSkipModal(false)}
-          isLoading={isSkipping}
-        />
       )}
 
       {/* Modal de restauração de streak */}

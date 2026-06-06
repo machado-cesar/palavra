@@ -1,14 +1,13 @@
 'use client'
 
-import { SCORING } from '@/types'
 import { getScorePercentage, getScoreBarColor } from '@/lib/scoring'
 
 interface ScoreDisplayProps {
   currentMaxScore: number
-  skips: number
+  skips?: number
 }
 
-export default function ScoreDisplay({ currentMaxScore, skips }: ScoreDisplayProps) {
+export default function ScoreDisplay({ currentMaxScore }: ScoreDisplayProps) {
   const percentage = getScorePercentage(currentMaxScore)
   const barColor = getScoreBarColor(percentage)
 
@@ -31,13 +30,6 @@ export default function ScoreDisplay({ currentMaxScore, skips }: ScoreDisplayPro
           }}
         />
       </div>
-
-      {/* Penalidades */}
-      {skips > 0 && (
-        <p className="text-xs text-zinc-500 text-right">
-          {skips} skip{skips > 1 ? 's' : ''} · −{skips * SCORING.PENALTY_PER_SKIP} pts
-        </p>
-      )}
     </div>
   )
 }
