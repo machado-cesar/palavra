@@ -9,7 +9,8 @@ interface ResultScreenProps {
   skips: number
   attempts: Attempt[]
   streak: number
-  correctWord?: string   // revelada apenas quando perdeu
+  correctWord?: string
+  authToken?: string | null
   onClose: () => void
 }
 
@@ -39,7 +40,7 @@ function useNextWordCountdown(): string {
 }
 
 // Gera o grid de emojis para compartilhar
-function buildShareText(attempts: Attempt[], won: boolean, score: number, streak: number): string {
+function buildShareText(attempts: Attempt[], won: boolean, score: number, streak: number, rank: number | null): string {
   const grid = attempts
     .map(a =>
       a.result
@@ -53,18 +54,30 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number, streak
     .join('\n')
 
   const today = new Date().toLocaleDateString('pt-BR')
-  const result = won
+
+  let resultLine = won
     ? `✅ ${attempts.length}/6 tentativa${attempts.length > 1 ? 's' : ''} · +${score} pts`
     : `❌ Não acertei hoje`
-  const streakLine = streak > 0 ? `\n🔥 ${streak} dia${streak > 1 ? 's' : ''} seguido${streak > 1 ? 's' : ''}` : ''
 
-  return `char[5] — ${today}\n${result}${streakLine}\n\n${grid}\n\nhttps://char5.com.br`
+  if (won && rank) resultLine += ` · ${rank}º lugar`
+
+  let challengeLine = ''
+  if (won && rank && streak > 1) {
+    challengeLine = `\n🔥 ${streak} dias seguidos. Consegue me superar?`
+  } else if (won && rank) {
+    challengeLine = `\nConsegue me superar?`
+  } else if (won && streak > 1) {
+    challengeLine = `\n🔥 ${streak} dias seguidos. Entra e tenta me parar.`
+  }
+
+  return `char[5] — ${today}\n${resultLine}${challengeLine}\n\n${grid}\n\nhttps://char5.com.br`
 }
 
-export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, onClose }: ResultScreenProps) {
+export default function ResultScreen({ won, score, skips, attempts, streak, correctWord, authToken, onClose }: ResultScreenProps) {
   const countdown = useNextWordCountdown()
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [userRank, setUserRank] = useState<number | null>(null)
 
   // Entra com animação após um breve delay
   useEffect(() => {
@@ -72,10 +85,28 @@ export default function ResultScreen({ won, score, skips, attempts, streak, corr
     return () => clearTimeout(t)
   }, [])
 
+  // Busca posição no ranking (só quando ganhou)
+  useEffect(() => {
+    if (!won || !authToken) return
+    async function fetchRank() {
+      try {
+        const res = await fetch('/api/leaderboard', {
+          headers: { Authorization: `Bearer ${authToken}` },
+        })
+        const json = await res.json()
+        if (!json.success) return
+        const { leaderboard, userRank: rank } = json.data
+        const inTop = leaderboard.find((e: { isCurrentUser: boolean; rank: number }) => e.isCurrentUser)
+        setUserRank(inTop?.rank ?? rank ?? null)
+      } catch { /* silencioso */ }
+    }
+    fetchRank()
+  }, [won, authToken])
+
   const wrongAttempts = won ? attempts.length - 1 : attempts.length
 
   async function handleShare() {
-    const text = buildShareText(attempts, won, score, streak)
+    const text = buildShareText(attempts, won, score, streak, userRank)
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     const useShare = typeof navigator.share === 'function' && isMobile
 

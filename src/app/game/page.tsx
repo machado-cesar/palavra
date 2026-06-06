@@ -554,6 +554,7 @@ export default function GamePage() {
           attempts={attempts}
           streak={streak}
           correctWord={correctWord}
+          authToken={authToken}
           onClose={() => setShowResult(false)}
         />
       )}
