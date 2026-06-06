@@ -45,6 +45,7 @@ export default function GamePage() {
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const recoveredPointsRef = useRef(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [pendingStart, setPendingStart] = useState(false)
   const [showStreakRecovery, setShowStreakRecovery] = useState(false)
@@ -60,6 +61,7 @@ export default function GamePage() {
     }
 
     if (!recoveryStartedAt) {
+      recoveredPointsRef.current = 0
       setRecoveredPoints(0)
       return
     }
@@ -69,10 +71,13 @@ export default function GamePage() {
       return Math.min(elapsed, 100)
     }
 
-    setRecoveredPoints(compute())
+    const initial = compute()
+    recoveredPointsRef.current = initial
+    setRecoveredPoints(initial)
 
     const interval = setInterval(() => {
       const pts = compute()
+      recoveredPointsRef.current = pts
       setRecoveredPoints(pts)
       if (pts >= 100) {
         clearInterval(interval)
@@ -306,12 +311,14 @@ export default function GamePage() {
       return
     }
 
-    // Cancela o intervalo de recovery sincronicamente — evita ticks extras após submit
+    // Cancela intervalo e usa ref para ler o valor exato — evita race condition de closure
     if (recoveryIntervalRef.current) {
       clearInterval(recoveryIntervalRef.current)
       recoveryIntervalRef.current = null
     }
-    setCurrentMaxScore(prev => prev + recoveredPoints)
+    const pointsToCommit = recoveredPointsRef.current
+    recoveredPointsRef.current = 0
+    setCurrentMaxScore(prev => prev + pointsToCommit)
     setRecoveryStartedAt(null)
     setRecoveredPoints(0)
     setIsSubmitting(true)
