@@ -44,6 +44,7 @@ export default function GamePage() {
   const [isRestoringStreak, setIsRestoringStreak] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [wordUnavailable, setWordUnavailable] = useState(false)
   const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recoveredPointsRef = useRef(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -234,10 +235,16 @@ export default function GamePage() {
     const json = await res.json()
 
     if (!json.success) {
-      setMessage(json.error || 'Erro ao iniciar jogo')
-      setTimeout(() => setMessage(''), 3000)
+      if (json.error === 'Nenhuma palavra configurada para hoje') {
+        setWordUnavailable(true)
+      } else {
+        setMessage(json.error || 'Erro ao iniciar jogo')
+        setTimeout(() => setMessage(''), 3000)
+      }
       return
     }
+
+    setWordUnavailable(false)
 
     setStatus('playing')
     setAttempts([])
@@ -488,6 +495,28 @@ export default function GamePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-zinc-400 text-sm animate-pulse">Carregando...</div>
+      </div>
+    )
+  }
+
+  if (wordUnavailable) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6 max-w-lg mx-auto text-center">
+        <div className="text-4xl">⏳</div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold">A palavra de hoje está sendo preparada</h2>
+          <p className="text-zinc-400 text-sm">
+            O jogo é atualizado à meia-noite. Se você está vendo isso, é porque o processo
+            ainda não terminou. Tente novamente em alguns instantes.
+          </p>
+        </div>
+        <button
+          onClick={() => authToken && startGame(authToken)}
+          className="px-6 py-2.5 text-sm font-semibold bg-white text-zinc-900
+            rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
+        >
+          Tentar novamente
+        </button>
       </div>
     )
   }
