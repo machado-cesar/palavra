@@ -9,6 +9,7 @@ import TimerBar from '@/components/game/TimerBar'
 import SkipModal from '@/components/game/SkipModal'
 import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
+import OnboardingModal from '@/components/game/OnboardingModal'
 import { Attempt, GameStatus, LetterStatus, SCORING } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
@@ -45,6 +46,8 @@ export default function GamePage() {
   const [isRestoringStreak, setIsRestoringStreak] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [pendingStart, setPendingStart] = useState(false)
 
   // ─── Auth anônimo automático ───────────────────────────────────────────────
 
@@ -170,6 +173,15 @@ export default function GamePage() {
       if (isReturning && userStreak >= 1) {
         trackEvent('streak_return', { streak: userStreak })
       }
+
+      // Onboarding: exibe apenas na primeira visita
+      const seen = localStorage.getItem('char5_onboarding_seen')
+      if (!seen) {
+        setShowOnboarding(true)
+        setPendingStart(true)
+        return
+      }
+
       await startGame(authToken!)
     }
 
@@ -403,6 +415,17 @@ export default function GamePage() {
     await startGame(authToken!)
   }
 
+  // ─── Onboarding ───────────────────────────────────────────────────────────
+
+  async function handleOnboardingConfirm() {
+    localStorage.setItem('char5_onboarding_seen', '1')
+    setShowOnboarding(false)
+    if (pendingStart && authToken) {
+      setPendingStart(false)
+      await startGame(authToken)
+    }
+  }
+
   const handleTimerExpire = useCallback(() => {
     setTimerEndsAt(null)
     setStatus('playing')
@@ -562,6 +585,11 @@ export default function GamePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de onboarding — aparece apenas na primeira visita */}
+      {showOnboarding && (
+        <OnboardingModal onConfirm={handleOnboardingConfirm} />
       )}
 
       {/* Modal de apelido — aparece após primeiro jogo */}
