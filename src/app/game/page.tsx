@@ -541,6 +541,9 @@ export default function GamePage() {
               🔥 {streak}
             </span>
           )}
+          <a href="/incansavel" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Incansável
+          </a>
           <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Regras
           </a>

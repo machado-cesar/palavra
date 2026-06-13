@@ -2,20 +2,18 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getFreeSession, setFreeSession, clearFreeSession } from '@/lib/redis'
+import { getFreeSession, setFreeSession, clearFreeSession, updateIncansavelRanking } from '@/lib/redis'
 import { evaluateAttempt, normalizeWord, isValidGuess } from '@/lib/words'
-import { getPenalty, getRecoveredPoints, isGameOver } from '@/lib/scoring'
-import { SCORING, AttemptResponse } from '@/types'
+import { isGameOver } from '@/lib/scoring'
 
 /**
  * POST /api/free/attempt
  *
- * Valida uma tentativa no modo livre.
- * Mesma lógica de scoring e recovery do modo principal, mas:
- * - NÃO atualiza streak
- * - NÃO concede tokens
- * - NÃO entra no ranking
- * - NÃO persiste em game_sessions
+ * Valida uma tentativa no modo incansável.
+ * - Sem scoring, sem recovery, sem penalidades
+ * - Conta palavras ganhas no dia (wordsWon)
+ * - Mantém lista das últimas 10 palavras jogadas (recentWordIds)
+ * - Atualiza ranking:incansavel:{date} com wordsWon
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -38,12 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getFreeSession(user.id)
-    if (!session) {
-      return NextResponse.json({ error: 'Nenhuma sessão livre ativa' }, { status: 404 })
+    if (!session || !session.gameActive) {
+      return NextResponse.json({ error: 'Nenhuma sessão ativa' }, { status: 404 })
     }
 
     const normalizedGuess = normalizeWord(guess)
-    const answer = session.word  // já normalizada ao criar a sessão
+    const answer = session.word
     const result = evaluateAttempt(normalizedGuess, answer)
     const won = normalizedGuess === answer
 
@@ -51,43 +49,49 @@ export async function POST(request: NextRequest) {
     const newWrongAttempts = won ? session.wrongAttempts : session.wrongAttempts + 1
     const gameOver = !won && isGameOver(newAttemptsCount)
 
-    // ─── Cálculo de pontuação com recovery ─────────────────────────────────────
-
-    const recoveredPoints = session.recoveryStartedAt
-      ? getRecoveredPoints(session.recoveryStartedAt)
-      : 0
-
-    const scoreAfterRecovery = session.currentMaxScore + recoveredPoints
-    const penalty = won ? 0 : getPenalty(session.wrongAttempts)
-    const newMaxScore = Math.max(scoreAfterRecovery - penalty, 0)
-    const newRecoveryStartedAt = (!won && !gameOver) ? new Date().toISOString() : undefined
-
-    let finalScore = 0
-
     if (won || gameOver) {
-      finalScore = won ? newMaxScore : 0
-      await clearFreeSession(user.id)
-    } else {
-      // Atualizar sessão com o novo estado
+      // Atualizar lista das últimas 10 palavras
+      const newRecentWordIds = [...session.recentWordIds, session.wordId].slice(-10)
+      const newWordsWon = won ? session.wordsWon + 1 : session.wordsWon
+
+      // Salvar sessão com game inativo (stats do dia preservados)
       await setFreeSession(user.id, {
         ...session,
+        wordsWon: newWordsWon,
+        recentWordIds: newRecentWordIds,
         attemptsCount: newAttemptsCount,
-        currentMaxScore: newMaxScore,
         wrongAttempts: newWrongAttempts,
-        recoveryStartedAt: newRecoveryStartedAt,
+        gameActive: false,
+      })
+
+      // Atualizar ranking incansável do dia
+      if (newWordsWon > 0) {
+        await updateIncansavelRanking(user.id, newWordsWon)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          result,
+          won,
+          gameOver,
+          correctWord: gameOver && !won ? answer : undefined,
+          wordsWon: newWordsWon,
+        },
       })
     }
 
-    const response: AttemptResponse = {
-      result,
-      score: won || gameOver ? finalScore : newMaxScore,
-      won,
-      gameOver,
-      correctWord: gameOver && !won ? answer : undefined,
-      recoveryStartedAt: newRecoveryStartedAt,
-    }
+    // Jogo continua — só atualizar contadores
+    await setFreeSession(user.id, {
+      ...session,
+      attemptsCount: newAttemptsCount,
+      wrongAttempts: newWrongAttempts,
+    })
 
-    return NextResponse.json({ success: true, data: response })
+    return NextResponse.json({
+      success: true,
+      data: { result, won: false, gameOver: false, wordsWon: session.wordsWon },
+    })
   } catch (err) {
     console.error('[free/attempt]', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

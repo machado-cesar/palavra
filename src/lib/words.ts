@@ -59,21 +59,35 @@ export function isValidGuess(word: string): boolean {
 }
 
 /**
- * Retorna uma palavra aleatória ativa do banco (para o modo livre).
- * Não depende de used_at — pode retornar qualquer palavra ativa.
+ * Retorna uma palavra aleatória ativa do banco (modo incansável).
+ * excludeIds: lista de IDs a excluir (últimas 10 jogadas + palavra do dia).
  */
 export async function getRandomWord(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  excludeIds: string[] = []
 ): Promise<{ id: string; word: string } | null> {
-  // Busca um pool e escolhe aleatoriamente no JS para evitar ORDER BY RANDOM() caro
-  const { data, error } = await supabase
+  let query = supabase
     .from('words')
     .select('id, word')
     .eq('active', true)
     .limit(500)
 
-  if (error || !data?.length) return null
+  if (excludeIds.length > 0) {
+    query = query.not('id', 'in', `(${excludeIds.join(',')})`)
+  }
 
-  const chosen = data[Math.floor(Math.random() * data.length)]
-  return chosen
+  const { data, error } = await query
+
+  if (error || !data?.length) {
+    // Fallback sem exclusões caso o banco esteja quase esgotado
+    const { data: fallback } = await supabase
+      .from('words')
+      .select('id, word')
+      .eq('active', true)
+      .limit(500)
+    if (!fallback?.length) return null
+    return fallback[Math.floor(Math.random() * fallback.length)]
+  }
+
+  return data[Math.floor(Math.random() * data.length)]
 }

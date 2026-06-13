@@ -44,7 +44,7 @@ npm run dev
 Browser (Next.js App Router, client components)
     │
     ├── /game          → página principal do jogo (modo diário)
-    ├── /jogo-livre    → modo livre / ilimitado (sem streak, sem ranking)
+    ├── /incansavel    → modo incansável / ilimitado (sem streak, sem ranking diário)
     ├── /leaderboard   → ranking do dia
     ├── /como-jogar    → regras
     │
@@ -56,9 +56,9 @@ API Routes (Next.js, force-dynamic, executam no servidor)
     ├── /api/game/attempt        → valida tentativa, calcula score com recovery
     ├── /api/game/restore-streak → gasta escudo para recuperar streak de dia perdido
     ├── /api/game/recover-streak → gasta escudo para recuperar streak após derrota
-    ├── /api/free/start          → inicia sessão livre (palavra aleatória, sem histórico)
-    ├── /api/free/status         → estado da sessão livre ativa
-    ├── /api/free/attempt        → valida tentativa no modo livre (sem ranking/streak)
+    ├── /api/free/start          → inicia sessão no modo incansável (palavra aleatória, sem histórico)
+    ├── /api/free/status         → estado da sessão incansável ativa
+    ├── /api/free/attempt        → valida tentativa no modo incansável (sem ranking diário/streak)
     ├── /api/notifications/subscribe → salva/remove push subscription do usuário
     ├── /api/notifications/send  → envia push para todos os assinantes (auth: CRON_SECRET)
     ├── /api/leaderboard         → top 10 do dia com usernames
@@ -74,7 +74,7 @@ API Routes (Next.js, force-dynamic, executam no servidor)
          │
          └── Upstash Redis
                ├── session:active:{userId}    → estado da sessão diária (TTL 24h)
-               ├── session:free:{userId}      → estado da sessão livre (TTL 2h)
+               ├── session:free:{userId}      → estado da sessão incansável (TTL 2h)
                ├── ranking:daily:{YYYY-MM-DD} → sorted set (score → userId), TTL 7 dias
                ├── ranking:weekly:{YYYY-Www}  → sorted set semanal
                └── ranking:alltime            → sorted set histórico

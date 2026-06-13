@@ -7,8 +7,8 @@ import { getFreeSession } from '@/lib/redis'
 /**
  * GET /api/free/status
  *
- * Verifica se há uma sessão livre ativa para o usuário.
- * Retorna o estado atual da sessão (tentativas, score) sem revelar a palavra.
+ * Retorna o estado da sessão incansável do usuário.
+ * Inclui wordsWon (contador do dia) e se há partida ativa no momento.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -26,16 +26,15 @@ export async function GET(request: NextRequest) {
     const session = await getFreeSession(user.id)
 
     if (!session) {
-      return NextResponse.json({ success: true, data: { hasActiveSession: false } })
+      return NextResponse.json({ success: true, data: { hasActiveSession: false, wordsWon: 0 } })
     }
 
     return NextResponse.json({
       success: true,
       data: {
-        hasActiveSession: true,
-        attemptsCount: session.attemptsCount,
-        maxPossibleScore: session.currentMaxScore,
-        recoveryStartedAt: session.recoveryStartedAt,
+        hasActiveSession: session.gameActive,
+        wordsWon: session.wordsWon,
+        attemptsCount: session.gameActive ? session.attemptsCount : undefined,
       },
     })
   } catch (err) {

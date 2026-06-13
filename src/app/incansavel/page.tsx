@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabase'
 import WordGrid from '@/components/game/WordGrid'
 import Keyboard from '@/components/game/Keyboard'
-import ScoreDisplay from '@/components/game/ScoreDisplay'
-import RecoveryBar from '@/components/game/RecoveryBar'
 import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
@@ -15,68 +13,23 @@ declare global {
 }
 
 function trackEvent(name: string, params?: Record<string, unknown>) {
-  window.gtag?.('event', name, { mode: 'free', ...params })
+  window.gtag?.('event', name, { mode: 'incansavel', ...params })
 }
 
-export default function JogoLivrePage() {
+export default function IncansavelPage() {
   const [status, setStatus] = useState<GameStatus>('idle')
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [currentLetters, setCurrentLetters] = useState<string[]>(['', '', '', '', ''])
   const [cursorPos, setCursorPos] = useState(0)
   const [keyboardState, setKeyboardState] = useState<Record<string, LetterStatus>>({})
-  const [currentMaxScore, setCurrentMaxScore] = useState(1500)
-  const [recoveryStartedAt, setRecoveryStartedAt] = useState<string | null>(null)
-  const [recoveredPoints, setRecoveredPoints] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [correctWord, setCorrectWord] = useState<string | undefined>()
   const [showResult, setShowResult] = useState(false)
-  const [finalScore, setFinalScore] = useState(0)
-  const [won, setWon] = useState(false)
+  const [lastWon, setLastWon] = useState(false)
+  const [wordsWon, setWordsWon] = useState(0)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const recoveredPointsRef = useRef(0)
-
-  // ─── Recovery interval ────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (recoveryIntervalRef.current) {
-      clearInterval(recoveryIntervalRef.current)
-      recoveryIntervalRef.current = null
-    }
-
-    if (!recoveryStartedAt) {
-      recoveredPointsRef.current = 0
-      setRecoveredPoints(0)
-      return
-    }
-
-    function compute() {
-      const elapsed = Math.floor((Date.now() - new Date(recoveryStartedAt!).getTime()) / 1000)
-      return Math.min(elapsed, 100)
-    }
-
-    const initial = compute()
-    recoveredPointsRef.current = initial
-    setRecoveredPoints(initial)
-
-    const interval = setInterval(() => {
-      const pts = compute()
-      recoveredPointsRef.current = pts
-      setRecoveredPoints(pts)
-      if (pts >= 100) {
-        clearInterval(interval)
-        recoveryIntervalRef.current = null
-      }
-    }, 1000)
-
-    recoveryIntervalRef.current = interval
-    return () => {
-      clearInterval(interval)
-      recoveryIntervalRef.current = null
-    }
-  }, [recoveryStartedAt])
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
 
@@ -109,14 +62,12 @@ export default function JogoLivrePage() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ─── Iniciar ao obter token ───────────────────────────────────────────────
-
   useEffect(() => {
     if (!authToken) return
     startGame(authToken).finally(() => setIsLoading(false))
   }, [authToken])
 
-  // ─── Iniciar jogo ─────────────────────────────────────────────────────────
+  // ─── Iniciar partida ──────────────────────────────────────────────────────
 
   async function startGame(token: string) {
     setStatus('idle')
@@ -124,13 +75,9 @@ export default function JogoLivrePage() {
     setCurrentLetters(['', '', '', '', ''])
     setCursorPos(0)
     setKeyboardState({})
-    setCurrentMaxScore(1500)
-    setRecoveryStartedAt(null)
-    setRecoveredPoints(0)
     setCorrectWord(undefined)
     setShowResult(false)
-    setWon(false)
-    setFinalScore(0)
+    setLastWon(false)
 
     const res = await fetch('/api/free/start', {
       method: 'POST',
@@ -139,13 +86,15 @@ export default function JogoLivrePage() {
     const json = await res.json()
 
     if (!json.success) {
-      setMessage(json.error || 'Erro ao iniciar jogo livre')
+      setMessage(json.error || 'Erro ao iniciar modo incansável')
       setTimeout(() => setMessage(''), 3000)
       return
     }
 
+    // Manter o wordsWon retornado pelo servidor (contador do dia)
+    setWordsWon(json.data.wordsWon ?? 0)
     setStatus('playing')
-    trackEvent('game_started')
+    trackEvent('game_started', { wordsWon: json.data.wordsWon ?? 0 })
   }
 
   // ─── Teclado físico ──────────────────────────────────────────────────────
@@ -157,7 +106,6 @@ export default function JogoLivrePage() {
       else if (e.key === 'Backspace') handleBackspace()
       else if (/^[a-zA-ZÀ-ÿ]$/.test(e.key)) handleKey(e.key.toUpperCase())
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [status, currentLetters, cursorPos, attempts, isSubmitting])
@@ -173,24 +121,14 @@ export default function JogoLivrePage() {
 
   function handleBackspace() {
     if (currentLetters[cursorPos] !== '') {
-      setCurrentLetters(prev => {
-        const next = [...prev]
-        next[cursorPos] = ''
-        return next
-      })
+      setCurrentLetters(prev => { const n = [...prev]; n[cursorPos] = ''; return n })
     } else if (cursorPos > 0) {
       setCursorPos(cursorPos - 1)
-      setCurrentLetters(prev => {
-        const next = [...prev]
-        next[cursorPos - 1] = ''
-        return next
-      })
+      setCurrentLetters(prev => { const n = [...prev]; n[cursorPos - 1] = ''; return n })
     }
   }
 
-  function handleCellClick(col: number) {
-    setCursorPos(col)
-  }
+  function handleCellClick(col: number) { setCursorPos(col) }
 
   async function handleEnter() {
     const currentAttempt = currentLetters.join('')
@@ -199,7 +137,6 @@ export default function JogoLivrePage() {
       setTimeout(() => setMessage(''), 2000)
       return
     }
-
     if (!authToken || isSubmitting) return
 
     const normalized = normalizeWord(currentAttempt)
@@ -209,16 +146,6 @@ export default function JogoLivrePage() {
       return
     }
 
-    // Cancela intervalo e captura valor de recovery
-    if (recoveryIntervalRef.current) {
-      clearInterval(recoveryIntervalRef.current)
-      recoveryIntervalRef.current = null
-    }
-    const pointsToCommit = recoveredPointsRef.current
-    recoveredPointsRef.current = 0
-    setCurrentMaxScore(prev => prev + pointsToCommit)
-    setRecoveryStartedAt(null)
-    setRecoveredPoints(0)
     setIsSubmitting(true)
 
     const res = await fetch('/api/free/attempt', {
@@ -239,14 +166,9 @@ export default function JogoLivrePage() {
       return
     }
 
-    const { result, score, won: gameWon, gameOver } = json.data
+    const { result, won, gameOver, wordsWon: updatedCount } = json.data
 
-    const newAttempt: Attempt = {
-      word: normalized,
-      result,
-      timestamp: new Date().toISOString(),
-    }
-    setAttempts(prev => [...prev, newAttempt])
+    setAttempts(prev => [...prev, { word: normalized, result, timestamp: new Date().toISOString() }])
     setCurrentLetters(['', '', '', '', ''])
     setCursorPos(0)
 
@@ -254,34 +176,40 @@ export default function JogoLivrePage() {
       const updated = { ...prev }
       result.forEach(({ letter, status: s }: { letter: string; status: LetterStatus }) => {
         const priority: Record<LetterStatus, number> = { correct: 3, present: 2, absent: 1, empty: 0 }
-        if (!updated[letter] || priority[s] > priority[updated[letter]]) {
-          updated[letter] = s
-        }
+        if (!updated[letter] || priority[s] > priority[updated[letter]]) updated[letter] = s
       })
       return updated
     })
 
-    trackEvent('attempt_made', { won: gameWon, game_over: gameOver })
+    if (won || gameOver) {
+      setWordsWon(updatedCount)
+      setLastWon(won)
+      if (!won && json.data.correctWord) setCorrectWord(json.data.correctWord)
+      setStatus(won ? 'won' : 'lost')
+      setShowResult(true)
+      trackEvent('game_complete', { won, wordsWon: updatedCount })
+    }
+  }
 
-    if (gameWon) {
-      setCurrentMaxScore(score)
-      setFinalScore(score)
-      setWon(true)
-      setStatus('won')
-      setShowResult(true)
-      trackEvent('game_complete', { won: true, score, attempts: attempts.length + 1 })
-    } else if (gameOver) {
-      setFinalScore(0)
-      setWon(false)
-      setStatus('lost')
-      if (json.data.correctWord) setCorrectWord(json.data.correctWord)
-      setShowResult(true)
-      trackEvent('game_complete', { won: false, score: 0, attempts: attempts.length + 1 })
-    } else {
-      setCurrentMaxScore(score)
-      if (json.data.recoveryStartedAt) {
-        setRecoveryStartedAt(json.data.recoveryStartedAt)
+  // ─── Share ────────────────────────────────────────────────────────────────
+
+  async function handleShare() {
+    const text = `char[5] · modo incansável\nAcertei ${wordsWon} palavra${wordsWon !== 1 ? 's' : ''} hoje! 💪\nhttps://char5.com.br/incansavel`
+    try {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      if (typeof navigator.share === 'function' && isMobile) {
+        await navigator.share({ text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        setMessage('✓ Copiado!')
+        setTimeout(() => setMessage(''), 2000)
       }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(text)
+        setMessage('✓ Copiado!')
+        setTimeout(() => setMessage(''), 2000)
+      } catch { /* silencioso */ }
     }
   }
 
@@ -303,34 +231,31 @@ export default function JogoLivrePage() {
       {/* Header */}
       <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-2">
         <div className="flex items-center gap-3">
-          <a
-            href="/game"
-            className="text-zinc-400 hover:text-white text-sm transition-colors"
-            aria-label="Voltar ao modo diário"
-          >
+          <a href="/game" className="text-zinc-400 hover:text-white text-sm transition-colors">
             ← Diário
           </a>
           <span className="text-xl font-bold tracking-widest font-mono">
-            char[5] <span className="text-zinc-500 text-sm font-normal">· livre</span>
+            char[5] <span className="text-zinc-500 text-sm font-normal">· incansável</span>
           </span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
-            Regras
-          </a>
-        </div>
+        <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
+          Regras
+        </a>
       </header>
 
-      {/* Pontuação */}
-      <ScoreDisplay currentMaxScore={currentMaxScore + recoveredPoints} />
+      {/* Contador de palavras do dia */}
+      <div className="w-full flex items-center justify-center py-1">
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-zinc-800 border border-zinc-700">
+          <span className="text-zinc-400 text-sm">palavras hoje</span>
+          <span className="text-2xl font-bold tabular-nums text-white">{wordsWon}</span>
+        </div>
+      </div>
 
       {/* Toasts */}
       {message && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50
           px-4 py-2 bg-zinc-700 border border-zinc-500 rounded-full shadow-lg
-          text-white text-sm font-medium pointer-events-none
-          animate-[fadeIn_0.15s_ease]">
+          text-white text-sm font-medium pointer-events-none animate-[fadeIn_0.15s_ease]">
           {message}
         </div>
       )}
@@ -353,44 +278,50 @@ export default function JogoLivrePage() {
         />
       </div>
 
-      {/* Tela de resultado inline — sem modal para o modo livre */}
+      {/* Tela de resultado */}
       {showResult && (
         <div className="w-full max-w-sm bg-zinc-800 border border-zinc-700 rounded-2xl p-5 space-y-4 shadow-xl mx-auto mt-2">
-          <div className="text-center">
-            <div className="text-3xl mb-1">{won ? '🎉' : '😔'}</div>
-            <h2 className="text-lg font-bold">{won ? 'Acertou!' : 'Não foi dessa vez'}</h2>
-            {!won && correctWord && (
-              <p className="text-zinc-400 text-sm mt-1">
+          <div className="text-center space-y-1">
+            <div className="text-3xl">{lastWon ? '🎉' : '😔'}</div>
+            <h2 className="text-lg font-bold">{lastWon ? 'Acertou!' : 'Não foi dessa vez'}</h2>
+            {!lastWon && correctWord && (
+              <p className="text-zinc-400 text-sm">
                 A palavra era{' '}
                 <span className="text-white font-bold tracking-widest">{correctWord}</span>
               </p>
             )}
-            {won && (
-              <p className="text-green-400 text-lg font-bold mt-1">+{finalScore} pts</p>
-            )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/* Placar do dia */}
+          <div className="text-center bg-zinc-900 rounded-xl py-3 px-4">
+            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">palavras hoje</p>
+            <p className="text-4xl font-bold tabular-nums">{wordsWon}</p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleShare}
+              className="flex-1 py-2.5 text-sm text-zinc-400 border border-zinc-600
+                rounded-lg hover:border-zinc-400 hover:text-white transition-colors"
+            >
+              Compartilhar
+            </button>
             <button
               onClick={() => authToken && startGame(authToken)}
-              className="w-full py-2.5 text-sm font-semibold bg-white text-zinc-900
+              className="flex-1 py-2.5 text-sm font-semibold bg-white text-zinc-900
                 rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
             >
-              Jogar de novo
+              Próxima palavra
             </button>
-            <a
-              href="/game"
-              className="w-full py-2 text-center text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Voltar ao modo diário
-            </a>
           </div>
-        </div>
-      )}
 
-      {/* Recovery bar */}
-      {status === 'playing' && recoveryStartedAt && (
-        <RecoveryBar recovered={recoveredPoints} />
+          <a
+            href="/game"
+            className="block text-center text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            Voltar ao modo diário
+          </a>
+        </div>
       )}
 
       {/* Teclado */}

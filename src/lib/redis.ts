@@ -8,6 +8,7 @@ export const keys = {
   session: (userId: string) => `session:active:${userId}`,
   freeSession: (userId: string) => `session:free:${userId}`,
   rankingDaily: (date: string) => `ranking:daily:${date}`,
+  rankingIncansavel: (date: string) => `ranking:incansavel:${date}`,
   rankingWeekly: (week: string) => `ranking:weekly:${week}`,
   rankingAllTime: () => `ranking:alltime`,
 }
@@ -38,19 +39,23 @@ export async function clearActiveSession(userId: string): Promise<void> {
   await redis.del(keys.session(userId))
 }
 
-// ─── Sessão livre (modo ilimitado) ───────────────────────────────────────────
+// ─── Sessão incansável ────────────────────────────────────────────────────────
 
-// TTL menor que o modo principal — sessões livres expiram em 2h de inatividade
-const FREE_SESSION_TTL = 7200
+// Mesma TTL do modo diário — wordsWon e recentWordIds persistem o dia todo
+const FREE_SESSION_TTL = 86400
 
 export interface FreeSession {
+  // Estatísticas do dia (persistem entre partidas)
+  wordsWon: number
+  recentWordIds: string[]   // últimas 10 palavras jogadas — evita repetição
+
+  // Estado da partida atual
   wordId: string
-  word: string         // palavra normalizada — armazenada para evitar lookup no banco
+  word: string              // palavra normalizada — evita lookup no banco
   attemptsCount: number
-  currentMaxScore: number
   wrongAttempts: number
+  gameActive: boolean       // false quando entre partidas (aguardando "jogar de novo")
   startedAt: string
-  recoveryStartedAt?: string
 }
 
 export async function setFreeSession(userId: string, data: FreeSession): Promise<void> {
@@ -114,6 +119,30 @@ export async function getRanking(
       userId: results[i] as string,
       score: Number(results[i + 1]),
     })
+  }
+  return entries
+}
+
+/**
+ * Atualiza o ranking do modo incansável (palavras ganhas no dia).
+ * Usa ZADD com o maior score — nunca reduz a contagem de um usuário.
+ */
+export async function updateIncansavelRanking(userId: string, wordsWon: number): Promise<void> {
+  const today = getTodayKey()
+  const key = keys.rankingIncansavel(today)
+  await redis.zadd(key, { score: wordsWon, member: userId })
+  await redis.expire(key, 7 * 86400)
+}
+
+export async function getIncansavelRanking(
+  limit = 10
+): Promise<Array<{ userId: string; wordsWon: number }>> {
+  const key = keys.rankingIncansavel(getTodayKey())
+  const results = await redis.zrange(key, 0, limit - 1, { rev: true, withScores: true })
+
+  const entries: Array<{ userId: string; wordsWon: number }> = []
+  for (let i = 0; i < results.length; i += 2) {
+    entries.push({ userId: results[i] as string, wordsWon: Number(results[i + 1]) })
   }
   return entries
 }

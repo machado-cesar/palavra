@@ -261,11 +261,11 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           </button>
         </div>
 
-        {/* Link para modo livre */}
+        {/* Link para modo incansável */}
         <p className="text-center text-xs text-zinc-600">
           Quer praticar mais?{' '}
-          <a href="/jogo-livre" className="text-zinc-400 hover:text-white underline transition-colors">
-            Jogar no modo livre →
+          <a href="/incansavel" className="text-zinc-400 hover:text-white underline transition-colors">
+            Modo incansável →
           </a>
         </p>
       </div>
