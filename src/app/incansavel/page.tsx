@@ -238,9 +238,14 @@ export default function IncansavelPage() {
             char[5] <span className="text-zinc-500 text-sm font-normal">· incansável</span>
           </span>
         </div>
-        <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
-          Regras
-        </a>
+        <nav className="flex items-center gap-3">
+          <a href="/incansavel/regras" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Regras
+          </a>
+          <a href="/incansavel/ranking" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Ranking
+          </a>
+        </nav>
       </header>
 
       {/* Contador de palavras do dia */}
