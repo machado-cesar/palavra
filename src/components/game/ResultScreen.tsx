@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Attempt } from '@/types'
+import NotificationsPrompt from './NotificationsPrompt'
 
 interface ResultScreenProps {
   won: boolean
@@ -77,11 +78,22 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
   const [userRank, setUserRank] = useState<number | null>(null)
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
 
   // Entra com animação após um breve delay
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 400)
     return () => clearTimeout(t)
+  }, [])
+
+  // Mostrar prompt de notificação uma única vez (após a primeira partida)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const alreadyAsked = localStorage.getItem('char5_notif_asked')
+    if (!alreadyAsked) {
+      setShowNotifPrompt(true)
+    }
   }, [])
 
   // Busca posição no ranking (só quando ganhou)
@@ -223,6 +235,14 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           <p className="text-2xl font-mono font-bold tabular-nums">{countdown}</p>
         </div>
 
+        {/* Prompt de notificações — exibido apenas na primeira partida */}
+        {showNotifPrompt && authToken && (
+          <NotificationsPrompt
+            authToken={authToken}
+            onDismiss={() => setShowNotifPrompt(false)}
+          />
+        )}
+
         {/* Ações */}
         <div className="flex gap-3">
           <a
@@ -240,6 +260,14 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
             {copied ? '✓ Copiado!' : 'Compartilhar'}
           </button>
         </div>
+
+        {/* Link para modo livre */}
+        <p className="text-center text-xs text-zinc-600">
+          Quer praticar mais?{' '}
+          <a href="/jogo-livre" className="text-zinc-400 hover:text-white underline transition-colors">
+            Jogar no modo livre →
+          </a>
+        </p>
       </div>
       </div>
     </div>

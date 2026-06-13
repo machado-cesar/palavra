@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
         .eq('id', chosen.id)
 
       console.log(`[cron/daily-word] Fallback — palavra do dia: ${chosen.word}`)
+      await sendPushNotifications(request)
       return NextResponse.json({ success: true, word: chosen.word })
     }
 
@@ -86,6 +87,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log(`[cron/daily-word] Palavra do dia: ${chosen.word} (dificuldade ${chosen.difficulty})`)
+
+    // Enviar push notifications para assinantes opt-in
+    await sendPushNotifications(request)
+
     return NextResponse.json({
       success: true,
       word: chosen.word,
@@ -94,5 +99,31 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error('[cron/daily-word]', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
+/**
+ * Dispara push notifications internamente após definir a palavra do dia.
+ * Falhas aqui não abortam o cron — são apenas logadas.
+ */
+async function sendPushNotifications(request: NextRequest): Promise<void> {
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`
+    const res = await fetch(`${appUrl}/api/notifications/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        title: 'char[5] — nova palavra!',
+        body: 'A palavra de hoje está disponível. Venha defender sua sequência.',
+        url: '/game',
+      }),
+    })
+    const data = await res.json()
+    console.log(`[cron/daily-word] Push enviado: sent=${data.sent} expired=${data.expired}`)
+  } catch (err) {
+    console.warn('[cron/daily-word] Falha ao enviar push notifications:', err)
   }
 }

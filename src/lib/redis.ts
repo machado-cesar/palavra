@@ -6,6 +6,7 @@ export const redis = Redis.fromEnv()
 
 export const keys = {
   session: (userId: string) => `session:active:${userId}`,
+  freeSession: (userId: string) => `session:free:${userId}`,
   rankingDaily: (date: string) => `ranking:daily:${date}`,
   rankingWeekly: (week: string) => `ranking:weekly:${week}`,
   rankingAllTime: () => `ranking:alltime`,
@@ -35,6 +36,35 @@ export async function getActiveSession(userId: string): Promise<ActiveSession | 
 
 export async function clearActiveSession(userId: string): Promise<void> {
   await redis.del(keys.session(userId))
+}
+
+// ─── Sessão livre (modo ilimitado) ───────────────────────────────────────────
+
+// TTL menor que o modo principal — sessões livres expiram em 2h de inatividade
+const FREE_SESSION_TTL = 7200
+
+export interface FreeSession {
+  wordId: string
+  word: string         // palavra normalizada — armazenada para evitar lookup no banco
+  attemptsCount: number
+  currentMaxScore: number
+  wrongAttempts: number
+  startedAt: string
+  recoveryStartedAt?: string
+}
+
+export async function setFreeSession(userId: string, data: FreeSession): Promise<void> {
+  await redis.set(keys.freeSession(userId), JSON.stringify(data), { ex: FREE_SESSION_TTL })
+}
+
+export async function getFreeSession(userId: string): Promise<FreeSession | null> {
+  const data = await redis.get<string>(keys.freeSession(userId))
+  if (!data) return null
+  return typeof data === 'string' ? JSON.parse(data) : data
+}
+
+export async function clearFreeSession(userId: string): Promise<void> {
+  await redis.del(keys.freeSession(userId))
 }
 
 // ─── Ranking ──────────────────────────────────────────────────────────────────

@@ -29,8 +29,12 @@ npm run dev
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave de serviço (usada nos API routes) |
 | `UPSTASH_REDIS_REST_URL` | URL do Redis Upstash |
 | `UPSTASH_REDIS_REST_TOKEN` | Token do Redis Upstash |
-| `CRON_SECRET` | Secret para autenticar o cron job de palavra diária |
+| `CRON_SECRET` | Secret para autenticar o cron job e a rota /api/notifications/send |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | ID do Google Analytics 4 (opcional) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Chave VAPID pública (Web Push). Gerar com: `node -e "const wp=require('web-push'); const k=wp.generateVAPIDKeys(); console.log(JSON.stringify(k))"` |
+| `VAPID_PRIVATE_KEY` | Chave VAPID privada (Web Push) — nunca expor ao cliente |
+| `VAPID_SUBJECT` | Email ou URL para identificar o remetente VAPID (ex: `mailto:seu@email.com`) |
+| `NEXT_PUBLIC_APP_URL` | URL pública do app em produção (ex: `https://char5.com.br`) — usado pelo cron para chamar /api/notifications/send |
 
 ---
 
@@ -39,7 +43,8 @@ npm run dev
 ```
 Browser (Next.js App Router, client components)
     │
-    ├── /game          → página principal do jogo
+    ├── /game          → página principal do jogo (modo diário)
+    ├── /jogo-livre    → modo livre / ilimitado (sem streak, sem ranking)
     ├── /leaderboard   → ranking do dia
     ├── /como-jogar    → regras
     │
@@ -51,18 +56,25 @@ API Routes (Next.js, force-dynamic, executam no servidor)
     ├── /api/game/attempt        → valida tentativa, calcula score com recovery
     ├── /api/game/restore-streak → gasta escudo para recuperar streak de dia perdido
     ├── /api/game/recover-streak → gasta escudo para recuperar streak após derrota
+    ├── /api/free/start          → inicia sessão livre (palavra aleatória, sem histórico)
+    ├── /api/free/status         → estado da sessão livre ativa
+    ├── /api/free/attempt        → valida tentativa no modo livre (sem ranking/streak)
+    ├── /api/notifications/subscribe → salva/remove push subscription do usuário
+    ├── /api/notifications/send  → envia push para todos os assinantes (auth: CRON_SECRET)
     ├── /api/leaderboard         → top 10 do dia com usernames
     ├── /api/user/username       → salva apelido escolhido
     └── /api/cron/daily-word     → escolhe palavra do dia (Vercel Cron, 03:00 UTC)
+                                   → após escolher, chama /api/notifications/send
          │
          ├── Supabase (PostgreSQL)
-         │     ├── users               → perfil, streak, tokens
+         │     ├── users               → perfil, streak, tokens, push_subscription (jsonb)
          │     ├── words               → banco de palavras
-         │     ├── game_sessions       → histórico de partidas
+         │     ├── game_sessions       → histórico de partidas (modo diário apenas)
          │     └── leaderboard_daily   → placar persistente por data
          │
          └── Upstash Redis
-               ├── session:active:{userId}    → estado da sessão em andamento (TTL 24h)
+               ├── session:active:{userId}    → estado da sessão diária (TTL 24h)
+               ├── session:free:{userId}      → estado da sessão livre (TTL 2h)
                ├── ranking:daily:{YYYY-MM-DD} → sorted set (score → userId), TTL 7 dias
                ├── ranking:weekly:{YYYY-Www}  → sorted set semanal
                └── ranking:alltime            → sorted set histórico
@@ -149,9 +161,9 @@ Sempre use `getTodayBRT()` de `@/lib/date` para obter a data de hoje em horário
 
 | Tabela | Propósito |
 |---|---|
-| `public.users` | `username`, `current_streak`, `max_streak`, `tokens` (escudos), `last_played_at`, `total_score` |
+| `public.users` | `username`, `current_streak`, `max_streak`, `tokens` (escudos), `last_played_at`, `total_score`, `push_subscription` (jsonb, NULL = sem notificações) |
 | `public.words` | Palavras de 5 letras, maiúsculas, sem acentos. `used_at` marca quando foi usada. `active` filtra disponíveis |
-| `public.game_sessions` | Histórico de partidas. `attempts` é JSONB. `max_possible_score` reflete score após penalidades |
+| `public.game_sessions` | Histórico de partidas do **modo diário**. `attempts` é JSONB. `max_possible_score` reflete score após penalidades |
 | `public.leaderboard_daily` | Placar diário por data. Unique constraint em `(user_id, date)` |
 
 **Trigger:** `on_auth_user_created` cria linha em `public.users` automaticamente.
@@ -162,7 +174,8 @@ Sempre use `getTodayBRT()` de `@/lib/date` para obter a data de hoje em horário
 
 | Chave | Tipo | TTL | Propósito |
 |---|---|---|---|
-| `session:active:{userId}` | String (JSON) | 24h | Sessão em andamento: `sessionId`, `wordId`, `attemptsCount`, `wrongAttempts`, `currentMaxScore`, `recoveryStartedAt?` |
+| `session:active:{userId}` | String (JSON) | 24h | Sessão diária em andamento: `sessionId`, `wordId`, `attemptsCount`, `wrongAttempts`, `currentMaxScore`, `recoveryStartedAt?` |
+| `session:free:{userId}` | String (JSON) | 2h | Sessão do modo livre: `wordId`, `word` (normalizada), `attemptsCount`, `wrongAttempts`, `currentMaxScore`, `recoveryStartedAt?` |
 | `ranking:daily:{YYYY-MM-DD}` | Sorted Set | 7 dias | Score diário. Member = userId, Score = pontuação |
 | `ranking:weekly:{YYYY-Www}` | Sorted Set | — | Score semanal |
 | `ranking:alltime` | Sorted Set | permanente | Score histórico |

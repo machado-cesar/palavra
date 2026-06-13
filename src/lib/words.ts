@@ -1,4 +1,5 @@
 import { LetterResult, LetterStatus } from '@/types'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Compara a tentativa do jogador com a palavra correta.
@@ -55,4 +56,24 @@ export function normalizeWord(word: string): string {
  */
 export function isValidGuess(word: string): boolean {
   return word.length === 5 && /^[A-Za-zÀ-ÿ]+$/.test(word)
+}
+
+/**
+ * Retorna uma palavra aleatória ativa do banco (para o modo livre).
+ * Não depende de used_at — pode retornar qualquer palavra ativa.
+ */
+export async function getRandomWord(
+  supabase: SupabaseClient
+): Promise<{ id: string; word: string } | null> {
+  // Busca um pool e escolhe aleatoriamente no JS para evitar ORDER BY RANDOM() caro
+  const { data, error } = await supabase
+    .from('words')
+    .select('id, word')
+    .eq('active', true)
+    .limit(500)
+
+  if (error || !data?.length) return null
+
+  const chosen = data[Math.floor(Math.random() * data.length)]
+  return chosen
 }
