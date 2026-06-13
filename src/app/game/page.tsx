@@ -13,6 +13,7 @@ import StreakRecoveryModal from '@/components/game/StreakRecoveryModal'
 import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
+import { useNotifications } from '@/hooks/useNotifications'
 
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
@@ -52,6 +53,7 @@ export default function GamePage() {
   const [showStreakRecovery, setShowStreakRecovery] = useState(false)
   const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
   const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
+  const { isSubscribed, unsubscribe } = useNotifications()
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
 
@@ -550,6 +552,18 @@ export default function GamePage() {
           <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Ranking
           </a>
+          {isSubscribed && authToken && (
+            <button
+              onClick={async () => {
+                await unsubscribe(authToken)
+                trackEvent('notification_opted_out')
+              }}
+              title="Desligar notificações"
+              className="text-zinc-500 hover:text-zinc-300 transition-colors text-base leading-none"
+            >
+              🔔
+            </button>
+          )}
         </div>
       </header>
 

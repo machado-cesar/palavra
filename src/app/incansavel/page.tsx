@@ -194,7 +194,7 @@ export default function IncansavelPage() {
   // ─── Share ────────────────────────────────────────────────────────────────
 
   async function handleShare() {
-    const text = `char[5] · modo incansável\nAcertei ${wordsWon} palavra${wordsWon !== 1 ? 's' : ''} hoje! 💪\nhttps://char5.com.br/incansavel`
+    const text = `char[5] · modo incansável\n\n${wordsWon} palavra${wordsWon !== 1 ? 's' : ''}. Sem parar.\nMe supera se conseguir.\n\nchar5.com.br/incansavel`
     try {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
       if (typeof navigator.share === 'function' && isMobile) {
