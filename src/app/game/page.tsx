@@ -14,6 +14,7 @@ import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useTheme } from '@/contexts/ThemeContext'
 
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
@@ -54,13 +55,11 @@ export default function GamePage() {
   const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
   const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
   const { isSubscribed, isLoading: notifLoading, subscribe, unsubscribe, supported: notifSupported } = useNotifications()
+  const { copaTheme, toggleCopaTheme } = useTheme()
   const [currentUsername, setCurrentUsername] = useState<string>('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
-  const [copaTheme, setCopaTheme] = useState(() =>
-    typeof window === 'undefined' || localStorage.getItem('char5_copa_theme') !== '0'
-  )
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
 
@@ -101,17 +100,6 @@ export default function GamePage() {
       recoveryIntervalRef.current = null
     }
   }, [recoveryStartedAt])
-
-  // ─── Aplicar/remover classe copa no body ─────────────────────────────────
-
-  useEffect(() => {
-    if (copaTheme) {
-      document.body.classList.add('copa')
-    } else {
-      document.body.classList.remove('copa')
-    }
-    return () => document.body.classList.remove('copa')
-  }, [copaTheme])
 
   // ─── Fechar settings ao clicar fora ──────────────────────────────────────
 
@@ -645,12 +633,7 @@ export default function GamePage() {
                   <div className="px-4 py-3">
                     <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Tema</p>
                     <button
-                      onClick={() => {
-                        const next = !copaTheme
-                        setCopaTheme(next)
-                        localStorage.setItem('char5_copa_theme', next ? '1' : '0')
-                        trackEvent('copa_theme_toggled', { enabled: next })
-                      }}
+                      onClick={toggleCopaTheme}
                       className="w-full flex items-center justify-between text-sm rounded-lg px-3 py-2 bg-zinc-900 hover:bg-zinc-700 transition-colors"
                     >
                       <span>⚽ Copa do Mundo</span>

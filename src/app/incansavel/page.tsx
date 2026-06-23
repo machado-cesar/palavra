@@ -7,6 +7,7 @@ import Keyboard from '@/components/game/Keyboard'
 import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
+import { useTheme } from '@/contexts/ThemeContext'
 
 declare global {
   interface Window { gtag?: (...args: unknown[]) => void }
@@ -17,6 +18,7 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
 }
 
 export default function IncansavelPage() {
+  const { copaTheme } = useTheme()
   const [status, setStatus] = useState<GameStatus>('idle')
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [currentLetters, setCurrentLetters] = useState<string[]>(['', '', '', '', ''])
@@ -280,6 +282,7 @@ export default function IncansavelPage() {
           cursorPos={cursorPos}
           gameOver={gameOver}
           onCellClick={status === 'playing' ? handleCellClick : undefined}
+          copaTheme={copaTheme}
         />
       </div>
 
@@ -338,6 +341,7 @@ export default function IncansavelPage() {
             onEnter={handleEnter}
             onBackspace={handleBackspace}
             disabled={isSubmitting}
+            copaTheme={copaTheme}
           />
         </div>
       )}

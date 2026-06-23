@@ -3,3 +3,25 @@
 body.copa {
   background: linear-gradient(160deg, #071a0e 0%, #020c1a 100%);
 }
+
+/* Header border em todas as páginas */
+body.copa header {
+  border-bottom-color: #eab308;
+}
+
+/* Superfícies de cards e modais */
+body.copa .bg-zinc-800 {
+  background-color: #0d2a12;
+}
+body.copa .bg-zinc-800\/60 {
+  background-color: rgb(13 42 18 / 0.6);
+}
+body.copa .bg-zinc-900 {
+  background-color: #071a0e;
+}
+body.copa .border-zinc-700 {
+  border-color: #1a4a20;
+}
+body.copa .border-zinc-700\/50 {
+  border-color: rgb(26 74 32 / 0.5);
+}
