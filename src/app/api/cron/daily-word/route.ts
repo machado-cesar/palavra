@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
         .eq('id', chosen.id)
 
       console.log(`[cron/daily-word] Fallback — palavra do dia: ${chosen.word}`)
+      await awardIncansavelTrophies(today)
       await sendPushNotifications(request)
       return NextResponse.json({ success: true, word: chosen.word })
     }
@@ -88,6 +89,9 @@ export async function GET(request: NextRequest) {
 
     console.log(`[cron/daily-word] Palavra do dia: ${chosen.word} (dificuldade ${chosen.difficulty})`)
 
+    // Premiar campeões do incansável de ontem
+    await awardIncansavelTrophies(today)
+
     // Enviar push notifications para assinantes opt-in
     await sendPushNotifications(request)
 
@@ -99,6 +103,62 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     console.error('[cron/daily-word]', err)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
+/**
+ * Premia os campeões do incansável de ontem.
+ * today = data de hoje em BRT; ontem = today - 1 dia.
+ * Idempotente: verifica incansavel_trophy_log antes de premiar.
+ */
+async function awardIncansavelTrophies(today: string): Promise<void> {
+  try {
+    // Calcular ontem
+    const d = new Date(today + 'T12:00:00Z')
+    d.setUTCDate(d.getUTCDate() - 1)
+    const yesterday = d.toISOString().split('T')[0]
+
+    // Verificar se já foi premiado
+    const { data: existing } = await supabaseAdmin
+      .from('incansavel_trophy_log')
+      .select('user_id')
+      .eq('date', yesterday)
+      .limit(1)
+
+    if (existing && existing.length > 0) {
+      console.log(`[cron/trophies] ${yesterday} já premiado`)
+      return
+    }
+
+    // Buscar o máximo de palavras de ontem
+    const { data: completions } = await supabaseAdmin
+      .from('incansavel_completions')
+      .select('user_id, words_completed')
+      .eq('date', yesterday)
+      .order('words_completed', { ascending: false })
+
+    if (!completions?.length) {
+      console.log(`[cron/trophies] Nenhuma completion em ${yesterday}`)
+      return
+    }
+
+    const maxWords = completions[0].words_completed
+    if (maxWords === 0) return
+
+    const winners = completions.filter(c => c.words_completed === maxWords)
+
+    // Inserir no log e incrementar troféus
+    await supabaseAdmin.from('incansavel_trophy_log').insert(
+      winners.map(w => ({ date: yesterday, user_id: w.user_id, words_completed: w.words_completed }))
+    )
+
+    for (const winner of winners) {
+      await supabaseAdmin.rpc('increment_incansavel_trophies', { uid: winner.user_id })
+    }
+
+    console.log(`[cron/trophies] ${yesterday}: ${winners.length} campeão(ões) com ${maxWords} palavras`)
+  } catch (err) {
+    console.warn('[cron/trophies] Erro ao premiar campeões:', err)
   }
 }
 

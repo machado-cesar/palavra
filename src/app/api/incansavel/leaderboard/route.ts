@@ -26,26 +26,29 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Buscar usernames
+    // Buscar usernames e troféus
     const userIds = entries.map(e => e.userId)
     const { data: users } = await supabaseAdmin
       .from('users')
-      .select('id, username')
+      .select('id, username, incansavel_trophies')
       .in('id', userIds)
 
-    const usernameMap: Record<string, string> = {}
-    for (const u of users ?? []) usernameMap[u.id] = u.username
+    const userMap: Record<string, { username: string; trophies: number }> = {}
+    for (const u of users ?? []) {
+      userMap[u.id] = { username: u.username, trophies: u.incansavel_trophies ?? 0 }
+    }
 
     const leaderboard = entries.map((entry, index) => ({
       rank: index + 1,
-      username: usernameMap[entry.userId] ?? 'Anônimo',
+      username: userMap[entry.userId]?.username ?? 'Anônimo',
+      trophies: userMap[entry.userId]?.trophies ?? 0,
       wordsWon: entry.wordsWon,
       isCurrentUser: entry.userId === userId,
     }))
 
     // Posição do usuário se fora do top 20
     let userRank: number | null = null
-    let userEntry: { rank: number; username: string; wordsWon: number } | null = null
+    let userEntry: { rank: number; username: string; trophies: number; wordsWon: number } | null = null
 
     if (userId && !leaderboard.find(e => e.isCurrentUser)) {
       const rank = await redis.zrevrank(keys.rankingIncansavel(getTodayKey()), userId)
@@ -53,11 +56,12 @@ export async function GET(request: NextRequest) {
         userRank = rank + 1
         const wordsWonRaw = await redis.zscore(keys.rankingIncansavel(getTodayKey()), userId)
         const { data: userProfile } = await supabaseAdmin
-          .from('users').select('username').eq('id', userId).single()
+          .from('users').select('username, incansavel_trophies').eq('id', userId).single()
 
         userEntry = {
           rank: userRank,
           username: userProfile?.username ?? 'Você',
+          trophies: userProfile?.incansavel_trophies ?? 0,
           wordsWon: wordsWonRaw !== null ? Number(wordsWonRaw) : 0,
         }
       }

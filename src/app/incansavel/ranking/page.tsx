@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/supabase'
 interface RankingEntry {
   rank: number
   username: string
+  trophies: number
   wordsWon: number
   isCurrentUser: boolean
 }
@@ -13,7 +14,19 @@ interface RankingEntry {
 interface RankingData {
   leaderboard: RankingEntry[]
   userRank: number | null
-  userEntry: { rank: number; username: string; wordsWon: number } | null
+  userEntry: { rank: number; username: string; trophies: number; wordsWon: number } | null
+}
+
+function TrophyBadge({ count }: { count: number }) {
+  if (!count) return null
+  const sup = count.toString().split('').map(d =>
+    '⁰¹²³⁴⁵⁶⁷⁸⁹'[parseInt(d)]
+  ).join('')
+  return (
+    <span className="ml-1.5 text-yellow-400 text-base leading-none" title={`${count} dia${count !== 1 ? 's' : ''} campeão`}>
+      🏆{sup}
+    </span>
+  )
 }
 
 function getRankIcon(rank: number): string {
@@ -116,13 +129,14 @@ export default function IncansavelRankingPage() {
               </div>
 
               {/* Nome */}
-              <div className="flex-1 truncate">
+              <div className="flex-1 truncate flex items-center">
                 <span className={`text-sm font-medium ${entry.isCurrentUser ? 'text-white' : 'text-zinc-200'}`}>
                   {entry.username}
-                  {entry.isCurrentUser && (
-                    <span className="ml-2 text-xs text-zinc-400 font-normal">você</span>
-                  )}
                 </span>
+                <TrophyBadge count={entry.trophies} />
+                {entry.isCurrentUser && (
+                  <span className="ml-2 text-xs text-zinc-400 font-normal">você</span>
+                )}
               </div>
 
               {/* Palavras */}
@@ -143,11 +157,12 @@ export default function IncansavelRankingPage() {
                 <div className="w-10 text-center text-sm font-bold text-zinc-400 tabular-nums shrink-0">
                   #{data.userEntry.rank}
                 </div>
-                <div className="flex-1 truncate">
+                <div className="flex-1 truncate flex items-center">
                   <span className="text-sm font-medium text-white">
                     {data.userEntry.username}
-                    <span className="ml-2 text-xs text-zinc-400 font-normal">você</span>
                   </span>
+                  <TrophyBadge count={data.userEntry.trophies} />
+                  <span className="ml-2 text-xs text-zinc-400 font-normal">você</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-lg font-bold tabular-nums text-white">{data.userEntry.wordsWon}</span>
