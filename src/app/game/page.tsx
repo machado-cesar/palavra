@@ -58,6 +58,9 @@ export default function GamePage() {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const [copaTheme, setCopaTheme] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('char5_copa_theme') === '1'
+  )
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
 
@@ -546,8 +549,10 @@ export default function GamePage() {
     <div className="flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto">
 
       {/* Header */}
-      <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-2">
-        <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
+      <header className={`w-full flex justify-between items-center border-b pb-2 ${copaTheme ? 'border-yellow-500' : 'border-zinc-700'}`}>
+        <span className="text-2xl font-bold tracking-widest font-mono">
+          {copaTheme && <span className="mr-1">⚽</span>}char[5]
+        </span>
 
         <div className="flex items-center gap-3">
           {tokens > 0 && (
@@ -623,6 +628,26 @@ export default function GamePage() {
                       </button>
                     </div>
                   )}
+
+                  {/* Tema Copa */}
+                  <div className="border-t border-zinc-700 mx-4" />
+                  <div className="px-4 py-3">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Tema</p>
+                    <button
+                      onClick={() => {
+                        const next = !copaTheme
+                        setCopaTheme(next)
+                        localStorage.setItem('char5_copa_theme', next ? '1' : '0')
+                        trackEvent('copa_theme_toggled', { enabled: next })
+                      }}
+                      className="w-full flex items-center justify-between text-sm rounded-lg px-3 py-2 bg-zinc-900 hover:bg-zinc-700 transition-colors"
+                    >
+                      <span>⚽ Copa do Mundo</span>
+                      <span className={`text-xs font-semibold ${copaTheme ? 'text-yellow-400' : 'text-zinc-500'}`}>
+                        {copaTheme ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
