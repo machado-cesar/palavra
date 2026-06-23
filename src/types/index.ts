@@ -83,6 +83,12 @@ export interface GameStatusResponse {
   currentSession: GameSession | null
 }
 
+export interface DailyFrase {
+  tipo: 'ditado' | 'etimologia' | 'improvisado'
+  texto: string
+  explicacao?: string
+}
+
 export interface AttemptResponse {
   result: LetterResult[]
   score: number
@@ -94,6 +100,7 @@ export interface AttemptResponse {
   prevStreak?: number
   tokens?: number
   recoveryStartedAt?: string  // timestamp para o cliente animar o recovery
+  frase?: DailyFrase | null
 }
 
 export interface SkipResponse {

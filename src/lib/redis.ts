@@ -11,6 +11,7 @@ export const keys = {
   rankingIncansavel: (date: string) => `ranking:incansavel:${date}`,
   rankingWeekly: (week: string) => `ranking:weekly:${week}`,
   rankingAllTime: () => `ranking:alltime`,
+  dailyFrase: (date: string) => `daily_frase:${date}`,
 }
 
 // ─── Sessão ativa ─────────────────────────────────────────────────────────────
@@ -145,6 +146,20 @@ export async function getIncansavelRanking(
     entries.push({ userId: results[i] as string, wordsWon: Number(results[i + 1]) })
   }
   return entries
+}
+
+// ─── Frase do dia ─────────────────────────────────────────────────────────────
+
+import type { DailyFrase } from './anthropic'
+
+export async function setDailyFrase(date: string, frase: DailyFrase): Promise<void> {
+  await redis.set(keys.dailyFrase(date), JSON.stringify(frase), { ex: 3 * 86400 })
+}
+
+export async function getDailyFrase(date: string): Promise<DailyFrase | null> {
+  const data = await redis.get<string>(keys.dailyFrase(date))
+  if (!data) return null
+  return typeof data === 'string' ? JSON.parse(data) : data
 }
 
 export async function getUserRank(

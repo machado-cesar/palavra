@@ -7,6 +7,7 @@ import {
   setActiveSession,
   clearActiveSession,
   updateRanking,
+  getDailyFrase,
 } from '@/lib/redis'
 import { evaluateAttempt, normalizeWord, isValidGuess } from '@/lib/words'
 import {
@@ -185,6 +186,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    const frase = (won || gameOver) ? await getDailyFrase(getTodayBRT()) : null
+
     const response: AttemptResponse = {
       result,
       score: won || gameOver ? finalScore : newMaxScore,
@@ -196,6 +199,7 @@ export async function POST(request: NextRequest) {
       prevStreak: response_prevStreak || undefined,
       tokens: response_tokens || undefined,
       recoveryStartedAt: newRecoveryStartedAt,
+      frase: frase ?? null,
     }
 
     return NextResponse.json({ success: true, data: response })

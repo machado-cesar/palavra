@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getActiveSession } from '@/lib/redis'
+import { getActiveSession, getDailyFrase } from '@/lib/redis'
 import { SCORING } from '@/types'
 import { getTodayBRT } from '@/lib/date'
 
@@ -69,17 +69,17 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (completedSession) {
-        const { data: wordData } = await supabaseAdmin
-          .from('words')
-          .select('word')
-          .eq('id', word.id)
-          .single()
+        const [{ data: wordData }, frase] = await Promise.all([
+          supabaseAdmin.from('words').select('word').eq('id', word.id).single(),
+          getDailyFrase(today),
+        ])
 
         return NextResponse.json({
           success: true,
           data: {
             streak,
             tokens,
+            username: userProfile?.username ?? '',
             usernameConfirmed,
             streakAtRisk: false,
             canPlay: false,
@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
               timerSkips: completedSession.timer_skips,
               maxPossibleScore: completedSession.max_possible_score,
               correctWord: completedSession.won ? undefined : wordData?.word,
+              frase: frase ?? null,
             },
           },
         })
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest) {
       data: {
         streak,
         tokens,
+        username: userProfile?.username ?? '',
         usernameConfirmed,
         streakAtRisk,
         isReturning,

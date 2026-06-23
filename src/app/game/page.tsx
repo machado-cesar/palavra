@@ -59,6 +59,7 @@ export default function GamePage() {
   const [currentUsername, setCurrentUsername] = useState<string>('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
+  const [dailyFrase, setDailyFrase] = useState<import('@/types').DailyFrase | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
@@ -182,6 +183,7 @@ export default function GamePage() {
         if (!completedSession.won && completedSession.correctWord) {
           setCorrectWord(completedSession.correctWord)
         }
+        if (completedSession.frase) setDailyFrase(completedSession.frase)
         setShowResult(true)
         return
       }
@@ -396,6 +398,10 @@ export default function GamePage() {
     function proceedAfterGame() {
       if (!usernameConfirmed) setShowUsernameModal(true)
       else setShowResult(true)
+    }
+
+    if (won || gameOver) {
+      if (json.data.frase) setDailyFrase(json.data.frase)
     }
 
     if (won) {
@@ -690,6 +696,7 @@ export default function GamePage() {
           streak={streak}
           correctWord={correctWord}
           authToken={authToken}
+          frase={dailyFrase}
           onClose={() => setShowResult(false)}
         />
       )}

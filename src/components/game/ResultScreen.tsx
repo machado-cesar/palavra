@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Attempt } from '@/types'
+import { Attempt, DailyFrase } from '@/types'
 import NotificationsPrompt from './NotificationsPrompt'
 
 interface ResultScreenProps {
@@ -11,6 +11,7 @@ interface ResultScreenProps {
   streak: number
   correctWord?: string
   authToken?: string | null
+  frase?: DailyFrase | null
   onClose: () => void
 }
 
@@ -73,7 +74,7 @@ function buildShareText(attempts: Attempt[], won: boolean, score: number, streak
   return `char[5] — ${today}\n${resultLine}${challengeLine}\n\n${grid}\n\nhttps://char5.com.br`
 }
 
-export default function ResultScreen({ won, score, attempts, streak, correctWord, authToken, onClose }: ResultScreenProps) {
+export default function ResultScreen({ won, score, attempts, streak, correctWord, authToken, frase, onClose }: ResultScreenProps) {
   const countdown = useNextWordCountdown()
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -224,6 +225,21 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
                 dia{streak > 1 ? 's' : ''} seguido{streak > 1 ? 's' : ''}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Frase do dia */}
+        {frase && (
+          <div className="bg-zinc-900 rounded-xl px-4 py-3 space-y-1">
+            <p className="text-zinc-300 text-sm italic leading-relaxed">
+              &ldquo;{frase.texto}&rdquo;
+            </p>
+            {frase.explicacao && (
+              <p className="text-zinc-500 text-xs">{frase.explicacao}</p>
+            )}
+            {frase.tipo === 'improvisado' && (
+              <p className="text-zinc-600 text-xs">ditado improvisado</p>
+            )}
           </div>
         )}
 

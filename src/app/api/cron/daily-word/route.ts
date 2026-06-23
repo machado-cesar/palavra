@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getTodayBRT } from '@/lib/date'
+import { generateDailyFrase } from '@/lib/anthropic'
+import { setDailyFrase } from '@/lib/redis'
 
 /**
  * GET /api/cron/daily-word
@@ -70,6 +72,7 @@ export async function GET(request: NextRequest) {
 
       console.log(`[cron/daily-word] Fallback — palavra do dia: ${chosen.word}`)
       await awardIncansavelTrophies(today)
+      await generateAndStoreFrase(chosen.word, today)
       await sendPushNotifications(request)
       return NextResponse.json({ success: true, word: chosen.word })
     }
@@ -91,6 +94,9 @@ export async function GET(request: NextRequest) {
 
     // Premiar campeões do incansável de ontem
     await awardIncansavelTrophies(today)
+
+    // Gerar frase do dia via Claude
+    await generateAndStoreFrase(chosen.word, today)
 
     // Enviar push notifications para assinantes opt-in
     await sendPushNotifications(request)
@@ -159,6 +165,16 @@ async function awardIncansavelTrophies(today: string): Promise<void> {
     console.log(`[cron/trophies] ${yesterday}: ${winners.length} campeão(ões) com ${maxWords} palavras`)
   } catch (err) {
     console.warn('[cron/trophies] Erro ao premiar campeões:', err)
+  }
+}
+
+async function generateAndStoreFrase(word: string, date: string): Promise<void> {
+  try {
+    const frase = await generateDailyFrase(word)
+    await setDailyFrase(date, frase)
+    console.log(`[cron/daily-word] Frase gerada (${frase.tipo}): ${frase.texto.slice(0, 60)}`)
+  } catch (err) {
+    console.warn('[cron/daily-word] Falha ao gerar frase do dia:', err)
   }
 }
 
