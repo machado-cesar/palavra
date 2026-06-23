@@ -59,7 +59,7 @@ export default function GamePage() {
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
   const [copaTheme, setCopaTheme] = useState(() =>
-    typeof window !== 'undefined' && localStorage.getItem('char5_copa_theme') === '1'
+    typeof window === 'undefined' || localStorage.getItem('char5_copa_theme') !== '0'
   )
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
