@@ -77,12 +77,6 @@ export interface ApiResponse<T = void> {
   error?: string
 }
 
-export interface GameStatusResponse {
-  canPlay: boolean
-  timerEndsAt: string | null   // null = sem timer ativo
-  currentSession: GameSession | null
-}
-
 export interface DailyFrase {
   tipo: 'ditado' | 'etimologia' | 'improvisado'
   texto: string

@@ -150,7 +150,7 @@ export async function getIncansavelRanking(
 
 // ─── Frase do dia ─────────────────────────────────────────────────────────────
 
-import type { DailyFrase } from './anthropic'
+import type { DailyFrase } from '@/types'
 
 export async function setDailyFrase(date: string, frase: DailyFrase): Promise<void> {
   await redis.set(keys.dailyFrase(date), JSON.stringify(frase), { ex: 3 * 86400 })

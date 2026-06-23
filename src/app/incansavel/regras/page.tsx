@@ -137,6 +137,18 @@ export default function IncansavelRegrasPage() {
         </p>
       </Section>
 
+      {/* Troféus */}
+      <Section title="Troféu de campeão 🏆">
+        <p className="text-zinc-300 text-sm leading-relaxed">
+          Quem acertar mais palavras no dia leva um troféu. Em caso de empate, todos os empatados são premiados.
+        </p>
+        <p className="text-zinc-300 text-sm leading-relaxed">
+          Os troféus acumulam a cada dia de campeonato e aparecem no ranking ao lado do seu nome — exibidos
+          como <span className="text-yellow-400 font-semibold">🏆²</span>, onde o número indica quantos dias
+          você foi campeão.
+        </p>
+      </Section>
+
       {/* CTAs */}
       <div className="w-full flex flex-col gap-2 mt-2">
         <a

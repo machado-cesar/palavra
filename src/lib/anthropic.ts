@@ -1,8 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { DailyFrase } from '@/types'
 
-export type { DailyFrase }
-
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function generateDailyFrase(word: string): Promise<DailyFrase> {

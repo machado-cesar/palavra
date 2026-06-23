@@ -223,8 +223,17 @@ export default function ComoJogarPage() {
           na página de <a href="/leaderboard" className="text-zinc-300 underline hover:text-white transition-colors">Ranking</a>.
         </p>
         <p className="text-zinc-300 text-sm leading-relaxed">
-          Para aparecer no ranking com um nome, escolha um apelido após sua primeira partida.
-          Se pular, você aparece como anônimo.
+          Para aparecer no ranking com um nome, escolha um apelido. Você pode definir ou alterar seu apelido
+          a qualquer momento pelo ícone ⚙️ no canto superior direito.
+        </p>
+      </Section>
+
+      {/* Frase do dia */}
+      <Section title="Frase do dia">
+        <p className="text-zinc-300 text-sm leading-relaxed">
+          Ao terminar a partida — seja vencendo ou perdendo — aparece uma frase relacionada à palavra do dia.
+          Pode ser um ditado popular brasileiro, uma curiosidade sobre a origem da palavra, ou um ditado
+          inventado no estilo popular (identificado como <em>ditado improvisado</em>).
         </p>
       </Section>
 
