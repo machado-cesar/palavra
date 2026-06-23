@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getTodayBRT } from '@/lib/date'
 import { generateDailyFrase } from '@/lib/anthropic'
-import { setDailyFrase } from '@/lib/redis'
+import { setDailyFrase, getDailyFrase } from '@/lib/redis'
 
 /**
  * GET /api/cron/daily-word
@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (existing) {
+      // Gerar frase se ainda não existir (idempotente)
+      const fraseExisting = await getDailyFrase(today)
+      if (!fraseExisting) {
+        await generateAndStoreFrase(existing.word, today)
+      }
       return NextResponse.json({
         success: true,
         message: 'Palavra já definida para hoje',
