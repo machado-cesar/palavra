@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getFreeSession, setFreeSession, clearFreeSession, updateIncansavelRanking } from '@/lib/redis'
+import { getFreeSession, setFreeSession, clearFreeSession, updateIncansavelRanking, getTodayKey } from '@/lib/redis'
 import { evaluateAttempt, normalizeWord, isValidGuess } from '@/lib/words'
 import { isGameOver } from '@/lib/scoring'
 
@@ -64,9 +64,20 @@ export async function POST(request: NextRequest) {
         gameActive: false,
       })
 
-      // Atualizar ranking incansável do dia
+      // Atualizar ranking incansável do dia (Redis)
       if (newWordsWon > 0) {
         await updateIncansavelRanking(user.id, newWordsWon)
+      }
+
+      // Persistir no Supabase para histórico e troféus
+      if (won) {
+        const today = getTodayKey()
+        await supabaseAdmin
+          .from('incansavel_completions')
+          .upsert(
+            { user_id: user.id, date: today, words_completed: newWordsWon, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id,date' }
+          )
       }
 
       return NextResponse.json({
