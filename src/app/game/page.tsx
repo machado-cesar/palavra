@@ -54,6 +54,10 @@ export default function GamePage() {
   const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
   const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
   const { isSubscribed, isLoading: notifLoading, subscribe, unsubscribe, supported: notifSupported } = useNotifications()
+  const [currentUsername, setCurrentUsername] = useState<string>('')
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [showChangeNickModal, setShowChangeNickModal] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
 
@@ -94,6 +98,18 @@ export default function GamePage() {
       recoveryIntervalRef.current = null
     }
   }, [recoveryStartedAt])
+
+  // ─── Fechar settings ao clicar fora ──────────────────────────────────────
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettingsMenu(false)
+      }
+    }
+    if (showSettingsMenu) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showSettingsMenu])
 
   // ─── Auth anônimo automático ───────────────────────────────────────────────
 
@@ -140,10 +156,11 @@ export default function GamePage() {
 
       if (!json.success) return
 
-      const { currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning } = json.data
+      const { currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning, username: savedUsername } = json.data
       if (userStreak) setStreak(userStreak)
       if (confirmed) setUsernameConfirmed(true)
       if (userTokens) setTokens(userTokens)
+      if (savedUsername) setCurrentUsername(savedUsername)
 
       // Jogo já concluído hoje — reconstruir estado do board
       if (completedSession) {
@@ -552,36 +569,63 @@ export default function GamePage() {
           <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Ranking
           </a>
-          {notifSupported && authToken && (
-            <button
-              onClick={async () => {
-                if (isSubscribed) {
-                  await unsubscribe(authToken)
-                  trackEvent('notification_opted_out')
-                } else {
-                  const ok = await subscribe(authToken)
-                  trackEvent(ok ? 'notification_opted_in' : 'notification_permission_denied')
-                }
-              }}
-              disabled={notifLoading}
-              title={isSubscribed ? 'Desligar notificações' : 'Ativar notificações'}
-              className="text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-40"
-            >
-              {isSubscribed ? (
+          {authToken && (
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setShowSettingsMenu(v => !v)}
+                title="Configurações"
+                className="text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                 </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  <path d="M18.63 13A17.89 17.89 0 0 1 18 8"/>
-                  <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"/>
-                  <path d="M18 8a6 6 0 0 0-9.33-5"/>
-                  <line x1="1" y1="1" x2="23" y2="23"/>
-                </svg>
+              </button>
+
+              {showSettingsMenu && (
+                <div className="absolute right-0 top-7 z-50 w-52 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+                  {/* Nick */}
+                  <div className="px-4 pt-3 pb-2">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Apelido</p>
+                    <p className="text-white text-sm font-medium truncate">{currentUsername || '—'}</p>
+                    <button
+                      onClick={() => { setShowSettingsMenu(false); setShowChangeNickModal(true) }}
+                      className="mt-2 w-full text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg py-1.5 transition-colors"
+                    >
+                      Mudar apelido
+                    </button>
+                  </div>
+
+                  {/* Divisor */}
+                  {notifSupported && <div className="border-t border-zinc-700 mx-4" />}
+
+                  {/* Notificações */}
+                  {notifSupported && (
+                    <div className="px-4 py-3">
+                      <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Notificações</p>
+                      <button
+                        onClick={async () => {
+                          if (isSubscribed) {
+                            await unsubscribe(authToken)
+                            trackEvent('notification_opted_out')
+                          } else {
+                            const ok = await subscribe(authToken)
+                            trackEvent(ok ? 'notification_opted_in' : 'notification_permission_denied')
+                          }
+                        }}
+                        disabled={notifLoading}
+                        className="w-full flex items-center justify-between text-sm rounded-lg px-3 py-2 bg-zinc-900 hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                      >
+                        <span>{isSubscribed ? 'Ativadas' : 'Desativadas'}</span>
+                        <span className={`text-xs font-semibold ${isSubscribed ? 'text-green-400' : 'text-zinc-500'}`}>
+                          {isSubscribed ? 'ON' : 'OFF'}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
           )}
         </div>
       </header>
@@ -706,8 +750,9 @@ export default function GamePage() {
       {showUsernameModal && authToken && (
         <UsernameModal
           authToken={authToken}
-          onSaved={() => {
+          onSaved={(username) => {
             setUsernameConfirmed(true)
+            setCurrentUsername(username)
             setShowUsernameModal(false)
             setShowResult(true)
           }}
@@ -715,6 +760,19 @@ export default function GamePage() {
             setShowUsernameModal(false)
             setShowResult(true)
           }}
+        />
+      )}
+
+      {/* Modal de troca de apelido — aberto via menu de configurações */}
+      {showChangeNickModal && authToken && (
+        <UsernameModal
+          authToken={authToken}
+          onSaved={(username) => {
+            setCurrentUsername(username)
+            setUsernameConfirmed(true)
+            setShowChangeNickModal(false)
+          }}
+          onSkip={() => setShowChangeNickModal(false)}
         />
       )}
     </div>
