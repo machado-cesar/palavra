@@ -230,7 +230,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
         {/* Próxima palavra */}
         <div className="text-center bg-zinc-900 rounded-xl py-3">
           <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">
-            Próxima palavra em
+            Uma palavra por dia · próxima em
           </p>
           <p className="text-2xl font-mono font-bold tabular-nums">{countdown}</p>
         </div>
