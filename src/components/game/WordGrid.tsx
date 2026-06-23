@@ -8,6 +8,7 @@ interface WordGridProps {
   cursorPos: number          // posição do cursor na linha atual
   gameOver: boolean
   onCellClick?: (col: number) => void
+  copaTheme?: boolean
 }
 
 const statusColors: Record<LetterStatus, string> = {
@@ -17,17 +18,27 @@ const statusColors: Record<LetterStatus, string> = {
   empty:   'bg-transparent border-zinc-600 text-white',
 }
 
+const statusColorsCopa: Record<LetterStatus, string> = {
+  correct: 'bg-[#009c3b] border-[#009c3b] text-white',
+  present: 'bg-[#f5c400] border-[#f5c400] text-zinc-900',
+  absent:  'bg-[#0d2240] border-[#0d2240] text-zinc-300',
+  empty:   'bg-transparent border-[#1a3a5c] text-white',
+}
+
 function LetterCell({
   letter,
   status,
   isCursor = false,
   onClick,
+  copaTheme = false,
 }: {
   letter: string
   status: LetterStatus
   isCursor?: boolean
   onClick?: () => void
+  copaTheme?: boolean
 }) {
+  const colors = copaTheme ? statusColorsCopa : statusColors
   return (
     <div
       onClick={onClick}
@@ -35,8 +46,8 @@ function LetterCell({
         w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center
         border-2 text-xl sm:text-2xl font-bold uppercase
         transition-all duration-300
-        ${statusColors[status]}
-        ${isCursor ? 'border-zinc-300 shadow-[0_0_6px_1px_rgba(255,255,255,0.2)] bg-zinc-800' : ''}
+        ${colors[status]}
+        ${isCursor ? 'border-[#f5c400] shadow-[0_0_8px_2px_rgba(245,196,0,0.3)] bg-[#071a0e]' : ''}
         ${onClick ? 'cursor-pointer' : ''}
       `}
     >
@@ -45,7 +56,7 @@ function LetterCell({
   )
 }
 
-export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver, onCellClick }: WordGridProps) {
+export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver, onCellClick, copaTheme }: WordGridProps) {
   const rows = Array(SCORING.MAX_ATTEMPTS).fill(null)
 
   return (
@@ -58,7 +69,7 @@ export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver
           return (
             <div key={rowIndex} className="flex gap-1.5">
               {attempt.result.map((r, colIndex) => (
-                <LetterCell key={colIndex} letter={r.letter} status={r.status} />
+                <LetterCell key={colIndex} letter={r.letter} status={r.status} copaTheme={copaTheme} />
               ))}
             </div>
           )
@@ -75,6 +86,7 @@ export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver
                   status="empty"
                   isCursor={colIndex === cursorPos}
                   onClick={() => onCellClick?.(colIndex)}
+                  copaTheme={copaTheme}
                 />
               ))}
             </div>
@@ -85,7 +97,7 @@ export default function WordGrid({ attempts, currentLetters, cursorPos, gameOver
         return (
           <div key={rowIndex} className="flex gap-1.5">
             {Array(5).fill(null).map((_, colIndex) => (
-              <LetterCell key={colIndex} letter="" status="empty" />
+              <LetterCell key={colIndex} letter="" status="empty" copaTheme={copaTheme} />
             ))}
           </div>
         )

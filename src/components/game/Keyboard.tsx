@@ -8,6 +8,7 @@ interface KeyboardProps {
   onEnter: () => void
   onBackspace: () => void
   disabled?: boolean
+  copaTheme?: boolean
 }
 
 const ROWS = [
@@ -23,7 +24,15 @@ const statusColors: Record<LetterStatus, string> = {
   empty:   'bg-zinc-600 text-white hover:bg-zinc-500',
 }
 
-export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, disabled }: KeyboardProps) {
+const statusColorsCopa: Record<LetterStatus, string> = {
+  correct: 'bg-[#009c3b] text-white',
+  present: 'bg-[#f5c400] text-zinc-900',
+  absent:  'bg-[#0d2240] text-zinc-400',
+  empty:   'bg-[#1a3a5c] text-white hover:bg-[#1f4a73]',
+}
+
+export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, disabled, copaTheme }: KeyboardProps) {
+  const colors = copaTheme ? statusColorsCopa : statusColors
   function handleClick(key: string) {
     if (disabled) return
     if (key === 'ENTER') onEnter()
@@ -49,7 +58,7 @@ export default function Keyboard({ keyboardState, onKey, onEnter, onBackspace, d
                   h-12 sm:h-14 rounded font-bold uppercase
                   transition-colors duration-200
                   disabled:opacity-50 disabled:cursor-not-allowed
-                  ${statusColors[status as LetterStatus]}
+                  ${colors[status as LetterStatus]}
                 `}
               >
                 {key}

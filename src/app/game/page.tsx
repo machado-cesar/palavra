@@ -102,6 +102,17 @@ export default function GamePage() {
     }
   }, [recoveryStartedAt])
 
+  // ─── Aplicar/remover classe copa no body ─────────────────────────────────
+
+  useEffect(() => {
+    if (copaTheme) {
+      document.body.classList.add('copa')
+    } else {
+      document.body.classList.remove('copa')
+    }
+    return () => document.body.classList.remove('copa')
+  }, [copaTheme])
+
   // ─── Fechar settings ao clicar fora ──────────────────────────────────────
 
   useEffect(() => {
@@ -546,7 +557,7 @@ export default function GamePage() {
   const gameOver = status === 'won' || status === 'lost'
 
   return (
-    <div className="flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto">
+    <div className={`flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto ${copaTheme ? 'bg-gradient-to-b from-[#071a0e] to-[#020c1a]' : ''}`}>
 
       {/* Header */}
       <header className={`w-full flex justify-between items-center border-b pb-2 ${copaTheme ? 'border-yellow-500' : 'border-zinc-700'}`}>
@@ -683,6 +694,7 @@ export default function GamePage() {
           cursorPos={cursorPos}
           gameOver={gameOver}
           onCellClick={status === 'playing' ? handleCellClick : undefined}
+          copaTheme={copaTheme}
         />
       </div>
 
@@ -713,6 +725,7 @@ export default function GamePage() {
             onEnter={handleEnter}
             onBackspace={handleBackspace}
             disabled={isSubmitting}
+            copaTheme={copaTheme}
           />
         </div>
       )}
