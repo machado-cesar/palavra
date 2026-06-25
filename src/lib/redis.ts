@@ -91,10 +91,19 @@ export async function updateRanking(userId: string, score: number): Promise<void
   const today = getTodayKey()
   const week = getWeekKey()
 
+  // Desempate por cronologia: quem joga antes fica melhor posicionado.
+  // Codificamos o horário como fração entre 0 e 1 (decrescente ao longo do dia em BRT).
+  // score_efetivo = score_base + (86400 - segundos_desde_meia_noite_BRT) / 86400
+  // A parte fracionária nunca altera a parte inteira, só o desempate.
+  const brtMs = Date.now() - 3 * 60 * 60 * 1000 // UTC-3
+  const secondsSinceMidnight = Math.floor((brtMs % (86400 * 1000)) / 1000)
+  const tiebreaker = (86400 - secondsSinceMidnight) / 86400
+  const effectiveScore = score + tiebreaker
+
   await Promise.all([
-    redis.zadd(keys.rankingDaily(today), { score, member: userId }),
-    redis.zadd(keys.rankingWeekly(week), { score, member: userId }),
-    redis.zadd(keys.rankingAllTime(), { score, member: userId }),
+    redis.zadd(keys.rankingDaily(today), { score: effectiveScore, member: userId }),
+    redis.zadd(keys.rankingWeekly(week), { score: effectiveScore, member: userId }),
+    redis.zadd(keys.rankingAllTime(), { score: effectiveScore, member: userId }),
   ])
 
   await redis.expire(keys.rankingDaily(today), 7 * 86400)
@@ -118,7 +127,7 @@ export async function getRanking(
   for (let i = 0; i < results.length; i += 2) {
     entries.push({
       userId: results[i] as string,
-      score: Number(results[i + 1]),
+      score: Math.floor(Number(results[i + 1])), // remove fração de desempate cronológico
     })
   }
   return entries
