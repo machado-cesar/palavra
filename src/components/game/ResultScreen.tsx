@@ -234,8 +234,11 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
             <p className="text-zinc-300 text-sm italic leading-relaxed">
               &ldquo;{frase.texto}&rdquo;
             </p>
-            {frase.explicacao && (
-              <p className="text-zinc-500 text-xs">{frase.explicacao}</p>
+            {frase.tipo === 'ditado' && (
+              <p className="text-zinc-600 text-xs">ditado popular</p>
+            )}
+            {frase.tipo === 'etimologia' && (
+              <p className="text-zinc-600 text-xs">etimologia</p>
             )}
             {frase.tipo === 'improvisado' && (
               <p className="text-zinc-600 text-xs">ditado improvisado</p>
