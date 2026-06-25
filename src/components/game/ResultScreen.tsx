@@ -241,7 +241,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
               <p className="text-zinc-600 text-xs">etimologia</p>
             )}
             {frase.tipo === 'improvisado' && (
-              <p className="text-zinc-600 text-xs">ditado improvisado</p>
+              <p className="text-zinc-600 text-xs">ditado impopular</p>
             )}
           </div>
         )}
