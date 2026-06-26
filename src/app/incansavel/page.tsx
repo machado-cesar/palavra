@@ -39,6 +39,7 @@ export default function IncansavelPage() {
   const [wordsWon, setWordsWon] = useState(0)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const firstCompleteFired = useRef(false)
 
   // ─── Fechar settings ao clicar fora ──────────────────────────────────────
 
@@ -123,9 +124,12 @@ export default function IncansavelPage() {
     }
 
     // Manter o wordsWon retornado pelo servidor (contador do dia)
-    setWordsWon(json.data.wordsWon ?? 0)
+    const wordsWonToday = json.data.wordsWon ?? 0
+    setWordsWon(wordsWonToday)
+    // Se já ganhou palavras hoje, game_complete já foi disparado anteriormente
+    if (wordsWonToday > 0) firstCompleteFired.current = true
     setStatus('playing')
-    trackEvent('game_started', { wordsWon: json.data.wordsWon ?? 0 })
+    trackEvent('game_started', { wordsWon: wordsWonToday })
   }
 
   // ─── Teclado físico ──────────────────────────────────────────────────────
@@ -218,7 +222,11 @@ export default function IncansavelPage() {
       if (!won && json.data.correctWord) setCorrectWord(json.data.correctWord)
       setStatus(won ? 'won' : 'lost')
       setShowResult(true)
-      trackEvent('game_complete', { won, wordsWon: updatedCount })
+      trackEvent('game_complete_tireless', { won, wordsWon: updatedCount })
+      if (!firstCompleteFired.current) {
+        trackEvent('game_complete', { won, wordsWon: updatedCount })
+        firstCompleteFired.current = true
+      }
     }
   }
 
