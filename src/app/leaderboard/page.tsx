@@ -63,15 +63,18 @@ export default function LeaderboardPage() {
   })
 
   return (
-    <div className="flex flex-col items-center min-h-screen px-4 py-6 gap-6 max-w-lg mx-auto">
+    <div className="flex flex-col min-h-screen">
 
-      {/* Header */}
-      <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-3">
+      {/* Header — full width */}
+      <header className="w-full flex justify-between items-center border-b border-zinc-700 px-4 sm:px-8 py-3">
         <span className="text-2xl font-bold tracking-widest font-mono">char[5]</span>
         <a href="/game" className="text-zinc-400 hover:text-white text-sm transition-colors">
           Jogar
         </a>
       </header>
+
+      {/* Conteúdo centralizado */}
+      <div className="flex flex-col items-center px-4 py-6 gap-6 w-full max-w-lg mx-auto">
 
       {/* Título */}
       <div className="w-full text-center space-y-1">
@@ -165,6 +168,7 @@ export default function LeaderboardPage() {
           ← Voltar ao jogo
         </a>
       )}
+      </div>{/* fim conteúdo centralizado */}
     </div>
   )
 }

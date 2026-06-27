@@ -553,10 +553,10 @@ export default function GamePage() {
   const gameOver = status === 'won' || status === 'lost'
 
   return (
-    <div className={`flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto ${copaTheme ? 'bg-gradient-to-b from-[#071a0e] to-[#020c1a]' : ''}`}>
+    <div className={`flex flex-col min-h-[100dvh] ${copaTheme ? 'bg-gradient-to-b from-[#071a0e] to-[#020c1a]' : ''}`}>
 
-      {/* Header */}
-      <header className={`w-full flex justify-between items-center border-b pb-2 ${copaTheme ? 'border-yellow-500' : 'border-zinc-700'}`}>
+      {/* Header — full width */}
+      <header className={`w-full flex justify-between items-center border-b px-4 sm:px-8 py-3 ${copaTheme ? 'border-yellow-500' : 'border-zinc-700'}`}>
         <span className="text-2xl font-bold tracking-widest font-mono">
           {copaTheme && <span className="mr-1">⚽</span>}char[5]
         </span>
@@ -572,16 +572,16 @@ export default function GamePage() {
               🔥 {streak}
             </span>
           )}
-          <a href="/incansavel" className="text-zinc-400 hover:text-white text-sm transition-colors">
+          <a href="/incansavel" className="hidden sm:block text-zinc-400 hover:text-white text-sm transition-colors">
             Incansável
           </a>
-          <a href="/como-jogar" className="text-zinc-400 hover:text-white text-sm transition-colors">
+          <a href="/como-jogar" className="hidden sm:block text-zinc-400 hover:text-white text-sm transition-colors">
             Regras
           </a>
-          <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
+          <a href="/leaderboard" className="hidden sm:block text-zinc-400 hover:text-white text-sm transition-colors">
             Ranking
           </a>
-          <a href="/grupos" className="text-zinc-400 hover:text-white text-sm transition-colors">
+          <a href="/grupos" className="hidden sm:block text-zinc-400 hover:text-white text-sm transition-colors">
             Grupos
           </a>
           {authToken && (
@@ -612,6 +612,20 @@ export default function GamePage() {
 
               {showSettingsMenu && (
                 <div className="absolute right-0 top-7 z-50 w-52 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+                  {/* Links de nav — só no mobile */}
+                  <div className="sm:hidden border-b border-zinc-700 px-4 py-3 space-y-0.5">
+                    {[
+                      { href: '/incansavel', label: 'Incansável' },
+                      { href: '/como-jogar', label: 'Regras' },
+                      { href: '/leaderboard', label: 'Ranking' },
+                      { href: '/grupos', label: 'Grupos' },
+                    ].map(({ href, label }) => (
+                      <a key={href} href={href}
+                        className="block text-sm text-zinc-300 hover:text-white py-1.5 transition-colors">
+                        {label}
+                      </a>
+                    ))}
+                  </div>
                   {/* Nick */}
                   <div className="px-4 pt-3 pb-2">
                     <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Apelido</p>
@@ -672,6 +686,9 @@ export default function GamePage() {
           )}
         </div>
       </header>
+
+      {/* Conteúdo centralizado do jogo */}
+      <div className="flex flex-col items-center flex-1 px-4 pt-4 pb-2 gap-2 w-full max-w-lg mx-auto">
 
       {/* Pontuação */}
       <ScoreDisplay currentMaxScore={currentMaxScore + recoveredPoints} />
@@ -737,6 +754,8 @@ export default function GamePage() {
           />
         </div>
       )}
+
+      </div>{/* fim do conteúdo centralizado */}
 
       {/* Modal de restauração de streak */}
       {showStreakRestorePrompt && streakAtRiskInfo && (

@@ -265,10 +265,10 @@ export default function IncansavelPage() {
   const gameOver = status === 'won' || status === 'lost'
 
   return (
-    <div className="flex flex-col items-center min-h-[100dvh] px-4 pt-4 pb-2 gap-2 max-w-lg mx-auto">
+    <div className="flex flex-col min-h-[100dvh]">
 
-      {/* Header */}
-      <header className="w-full flex justify-between items-center border-b border-zinc-700 pb-2">
+      {/* Header — full width */}
+      <header className="w-full flex justify-between items-center border-b border-zinc-700 px-4 sm:px-8 py-3">
         <div className="flex items-center gap-3">
           <a href="/game" className="text-zinc-400 hover:text-white text-sm transition-colors">
             ← Diário
@@ -357,6 +357,9 @@ export default function IncansavelPage() {
           )}
         </nav>
       </header>
+
+      {/* Conteúdo centralizado */}
+      <div className="flex flex-col items-center flex-1 px-4 pt-4 pb-2 gap-2 w-full max-w-lg mx-auto">
 
       {/* Contador de palavras do dia */}
       <div className="w-full flex items-center justify-center py-1">
@@ -453,6 +456,8 @@ export default function IncansavelPage() {
           />
         </div>
       )}
+
+      </div>{/* fim do conteúdo centralizado */}
 
       {/* Modal de troca de apelido */}
       {showChangeNickModal && authToken && (
