@@ -7,10 +7,11 @@ import { getTodayBRT } from '@/lib/date'
 // GET /api/groups/[code] — info do grupo + ranking diário dos membros
 export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const code = params.code.toUpperCase()
+    const { code: rawCode } = await params
+    const code = rawCode.toUpperCase()
 
     // Auth opcional — identifica o usuário atual no ranking
     let userId: string | null = null
