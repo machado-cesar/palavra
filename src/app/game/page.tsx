@@ -10,6 +10,7 @@ import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
 import OnboardingModal from '@/components/game/OnboardingModal'
 import StreakRecoveryModal from '@/components/game/StreakRecoveryModal'
+import StatsModal from '@/components/game/StatsModal'
 import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
 import { isValidPortugueseWord } from '@/lib/valid-words'
@@ -58,6 +59,7 @@ export default function GamePage() {
   const { copaTheme, toggleCopaTheme } = useTheme()
   const [currentUsername, setCurrentUsername] = useState<string>('')
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [showStatsModal, setShowStatsModal] = useState(false)
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
   const [dailyFrase, setDailyFrase] = useState<import('@/types').DailyFrase | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
@@ -580,6 +582,19 @@ export default function GamePage() {
             Ranking
           </a>
           {authToken && (
+            <button
+              onClick={() => setShowStatsModal(true)}
+              title="Estatísticas"
+              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </button>
+          )}
+          {authToken && (
             <div className="relative" ref={settingsRef}>
               <button
                 onClick={() => setShowSettingsMenu(v => !v)}
@@ -772,6 +787,14 @@ export default function GamePage() {
       {/* Modal de onboarding — aparece apenas na primeira visita */}
       {showOnboarding && (
         <OnboardingModal onConfirm={handleOnboardingConfirm} />
+      )}
+
+      {/* Modal de estatísticas */}
+      {showStatsModal && authToken && (
+        <StatsModal
+          authToken={authToken}
+          onClose={() => setShowStatsModal(false)}
+        />
       )}
 
       {/* Modal de apelido — aparece após primeiro jogo */}
