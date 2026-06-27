@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { use, useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/supabase'
 
 interface RankEntry {
@@ -25,7 +25,8 @@ interface GroupData {
   date: string
 }
 
-export default function GroupRankingPage({ params }: { params: { code: string } }) {
+export default function GroupRankingPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = use(params)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [data, setData] = useState<GroupData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,7 +41,7 @@ export default function GroupRankingPage({ params }: { params: { code: string } 
       setAuthToken(token)
       fetchGroup(token)
     })
-  }, [params.code])
+  }, [code])
 
   useEffect(() => {
     window.gtag?.('event', 'group_ranking_opened')
@@ -51,7 +52,7 @@ export default function GroupRankingPage({ params }: { params: { code: string } 
     try {
       const headers: HeadersInit = {}
       if (token) headers['Authorization'] = `Bearer ${token}`
-      const res = await fetch(`/api/groups/${params.code}`, { headers })
+      const res = await fetch(`/api/groups/${code}`, { headers })
       if (res.status === 404) { setNotFound(true); return }
       const json = await res.json()
       if (json.success) setData(json.data)
@@ -67,7 +68,7 @@ export default function GroupRankingPage({ params }: { params: { code: string } 
       const res = await fetch('/api/groups/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ code: params.code }),
+        body: JSON.stringify({ code: code }),
       })
       const json = await res.json()
       if (!json.success) { setJoinError(json.error ?? 'Erro ao entrar'); return }
@@ -82,7 +83,7 @@ export default function GroupRankingPage({ params }: { params: { code: string } 
   }
 
   function handleCopyLink() {
-    const url = `${window.location.origin}/grupos/${params.code}`
+    const url = `${window.location.origin}/grupos/${code}`
     navigator.clipboard.writeText(url).then(() => {
       window.gtag?.('event', 'group_link_copied')
       setCopied(true)
