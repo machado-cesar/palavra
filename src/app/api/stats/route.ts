@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     // Buscar dados do perfil
     const { data: profile } = await supabaseAdmin
       .from('users')
-      .select('current_streak, max_streak, total_score')
+      .select('current_streak, max_streak')
       .eq('id', user.id)
       .single()
 
@@ -57,8 +57,9 @@ export async function GET(request: NextRequest) {
 
     // Métricas de pontuação (apenas vitórias)
     const scores = (sessions ?? []).filter(s => s.won && s.score > 0).map(s => s.score)
+    const totalScore = scores.reduce((a, b) => a + b, 0)
     const melhorScore = scores.length > 0 ? Math.max(...scores) : 0
-    const mediaScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+    const mediaScore = scores.length > 0 ? Math.round(totalScore / scores.length) : 0
 
     const stats: UserStats = {
       jogadas,
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
       pctVitorias,
       streakAtual: profile?.current_streak ?? 0,
       melhorStreak: profile?.max_streak ?? 0,
-      totalScore: profile?.total_score ?? 0,
+      totalScore,
       melhorScore,
       mediaScore,
       distribuicao,
