@@ -581,6 +581,9 @@ export default function GamePage() {
           <a href="/leaderboard" className="text-zinc-400 hover:text-white text-sm transition-colors">
             Ranking
           </a>
+          <a href="/grupos" className="text-zinc-400 hover:text-white text-sm transition-colors">
+            Grupos
+          </a>
           {authToken && (
             <button
               onClick={() => setShowStatsModal(true)}
