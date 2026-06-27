@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Attempt, DailyFrase } from '@/types'
-import NotificationsPrompt from './NotificationsPrompt'
+import { useNotifications } from '@/hooks/useNotifications'
 
 interface ResultScreenProps {
   won: boolean
@@ -79,7 +79,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
   const [userRank, setUserRank] = useState<number | null>(null)
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+  const { supported, subscribe } = useNotifications()
 
   // Entra com animação após um breve delay
   useEffect(() => {
@@ -87,15 +87,22 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
     return () => clearTimeout(t)
   }, [])
 
-  // Mostrar prompt de notificação uma única vez (após a primeira partida)
+  // Solicitar permissão de push diretamente ao browser na segunda partida concluída
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    const alreadyAsked = localStorage.getItem('char5_notif_asked')
-    if (!alreadyAsked) {
-      setShowNotifPrompt(true)
+    if (!supported || !authToken) return
+    if (Notification.permission !== 'default') return // já decidido
+    if (localStorage.getItem('char5_notif_asked')) return // já solicitado
+
+    const count = parseInt(localStorage.getItem('char5_games_completed') || '0', 10) + 1
+    localStorage.setItem('char5_games_completed', String(count))
+
+    if (count >= 2) {
+      localStorage.setItem('char5_notif_asked', '1')
+      subscribe(authToken).then(ok => {
+        window.gtag?.('event', ok ? 'notification_opted_in' : 'notification_permission_denied')
+      })
     }
-  }, [])
+  }, [supported, authToken, subscribe])
 
   // Busca posição no ranking (só quando ganhou)
   useEffect(() => {
@@ -253,14 +260,6 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           </p>
           <p className="text-2xl font-mono font-bold tabular-nums">{countdown}</p>
         </div>
-
-        {/* Prompt de notificações — exibido apenas na primeira partida */}
-        {showNotifPrompt && authToken && (
-          <NotificationsPrompt
-            authToken={authToken}
-            onDismiss={() => setShowNotifPrompt(false)}
-          />
-        )}
 
         {/* Ações */}
         <div className="flex gap-3">
