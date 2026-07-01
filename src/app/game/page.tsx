@@ -419,11 +419,13 @@ export default function GamePage() {
       proceedAfterGame()
       trackEvent('game_won', { score, attempts: attempts.length + 1 })
       trackEvent('game_complete', { won: true, score, attempts: attempts.length + 1 })
+      window.fbq?.('trackCustom', 'game_complete', { won: true })
     } else if (gameOver) {
       setStatus('lost')
       if (json.data.correctWord) setCorrectWord(json.data.correctWord)
       trackEvent('game_lost', { attempts: attempts.length + 1 })
       trackEvent('game_complete', { won: false, score: 0, attempts: attempts.length + 1 })
+      window.fbq?.('trackCustom', 'game_complete', { won: false })
 
       // Oferecer recuperação de streak via token, se disponível
       if (json.data.streakCanBeSaved) {

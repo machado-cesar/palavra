@@ -12,19 +12,20 @@
 ## Funil de conversão
 
 ```
-Impressão → Clique → /game carrega → Jogo iniciado (ViewContent) → Username salvo (Lead)
+Impressão → Clique → /game carrega → Jogo iniciado (ViewContent) → Jogo concluído (game_complete) → Username salvo (Lead)
 ```
 
 Eventos rastreados automaticamente após o deploy:
 
-| Evento           | Plataforma  | Quando dispara                          |
-|------------------|-------------|------------------------------------------|
-| `PageView`       | Meta Pixel  | Toda pageview (automático pelo Pixel)    |
-| `ViewContent`    | Meta Pixel  | Usuário inicia o jogo com sucesso        |
-| `Lead`           | Meta Pixel  | Usuário salva um apelido (1ª identidade) |
-| `game_started`   | GA4         | Mesmo momento que ViewContent            |
-| `attempt_made`   | GA4         | Cada tentativa                           |
-| `game_won`       | GA4         | Vitória                                  |
+| Evento            | Plataforma  | Quando dispara                              |
+|-------------------|-------------|----------------------------------------------|
+| `PageView`        | Meta Pixel  | Toda pageview (automático pelo Pixel)        |
+| `ViewContent`     | Meta Pixel  | Usuário inicia o jogo com sucesso            |
+| `game_complete`   | Meta Pixel  | **Jogo concluído (vitória ou derrota)** ← conversão principal |
+| `Lead`            | Meta Pixel  | Usuário salva um apelido (1ª identidade)     |
+| `game_started`    | GA4         | Mesmo momento que ViewContent                |
+| `attempt_made`    | GA4         | Cada tentativa                               |
+| `game_complete`   | GA4         | Jogo concluído — importar como conversão no Google Ads |
 
 ---
 
