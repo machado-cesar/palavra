@@ -278,6 +278,7 @@ export default function GamePage() {
     setKeyboardState({})
     setCurrentMaxScore(1500)
     trackEvent('game_started')
+    window.fbq?.('track', 'ViewContent', { content_name: 'game_started' })
   }
 
   // ─── Teclado físico ───────────────────────────────────────────────────────
@@ -834,6 +835,7 @@ export default function GamePage() {
             setCurrentUsername(username)
             setShowUsernameModal(false)
             setShowResult(true)
+            window.fbq?.('track', 'Lead')
           }}
           onSkip={() => {
             setShowUsernameModal(false)
