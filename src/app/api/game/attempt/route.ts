@@ -15,7 +15,7 @@ import {
   getRecoveredPoints,
   isGameOver,
 } from '@/lib/scoring'
-import { SCORING, AttemptResponse } from '@/types'
+import { AttemptResponse } from '@/types'
 import { getTodayBRT } from '@/lib/date'
 
 export async function POST(request: NextRequest) {
@@ -43,18 +43,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nenhuma sessão ativa' }, { status: 404 })
     }
 
-    const { data: wordData, error: wordError } = await supabaseAdmin
-      .from('words')
-      .select('word')
-      .eq('id', activeSession.wordId)
-      .single()
+    // Busca palavra e tentativas existentes em paralelo
+    const [wordResult, dbSessionResult] = await Promise.all([
+      supabaseAdmin.from('words').select('word').eq('id', activeSession.wordId).single(),
+      supabaseAdmin.from('game_sessions').select('attempts').eq('id', activeSession.sessionId).single(),
+    ])
 
-    if (wordError || !wordData) {
+    if (wordResult.error || !wordResult.data) {
       return NextResponse.json({ error: 'Erro ao buscar palavra' }, { status: 500 })
     }
 
     const normalizedGuess = normalizeWord(guess)
-    const answer = normalizeWord(wordData.word.trim())
+    const answer = normalizeWord(wordResult.data.word.trim())
     const result = evaluateAttempt(normalizedGuess, answer)
     const won = normalizedGuess === answer
 
@@ -68,31 +68,15 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     }
 
-    const { data: dbSession } = await supabaseAdmin
-      .from('game_sessions')
-      .select('attempts')
-      .eq('id', activeSession.sessionId)
-      .single()
+    const allAttempts = [...(dbSessionResult.data?.attempts || []), attempt]
 
-    const allAttempts = [...(dbSession?.attempts || []), attempt]
-
-    // ─── Calcular pontuação com recovery ──────────────────────────────────────
-
-    // Pontos recuperados desde o último erro (se houver)
+    // ─── Calcular pontuação com recovery ────────────────────────────────────────
     const recoveredPoints = activeSession.recoveryStartedAt
       ? getRecoveredPoints(activeSession.recoveryStartedAt)
       : 0
-
-    // Score após recovery
     const scoreAfterRecovery = activeSession.currentMaxScore + recoveredPoints
-
-    // Penalidade do erro atual (se errou)
     const penalty = won ? 0 : getPenalty(activeSession.wrongAttempts)
-
-    // Novo score máximo
     const newMaxScore = Math.max(scoreAfterRecovery - penalty, 0)
-
-    // Recovery começa imediatamente após erro (se o jogo continua)
     const newRecoveryStartedAt = (!won && !gameOver) ? new Date().toISOString() : undefined
 
     let finalScore = 0
@@ -100,10 +84,13 @@ export async function POST(request: NextRequest) {
     let response_streakCanBeSaved = false
     let response_prevStreak = 0
     let response_tokens = 0
+    let frase = null
 
     if (won || gameOver) {
       finalScore = won ? newMaxScore : 0
+      const today = getTodayBRT()
 
+      // Salvar sessão concluída
       await supabaseAdmin
         .from('game_sessions')
         .update({
@@ -115,41 +102,41 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', activeSession.sessionId)
 
-      const today = getTodayBRT()
-      await supabaseAdmin
-        .from('leaderboard_daily')
-        .upsert({ user_id: user.id, date: today, score: finalScore })
-
       if (won) {
-        await updateRanking(user.id, finalScore)
-      }
+        // Leaderboard, ranking Redis, streak+token, clearSession e frase em paralelo
+        const results = await Promise.all([
+          supabaseAdmin.from('leaderboard_daily').upsert({ user_id: user.id, date: today, score: finalScore }),
+          updateRanking(user.id, finalScore),
+          (async () => {
+            await supabaseAdmin.rpc('increment_streak', { user_id: user.id })
+            const { data } = await supabaseAdmin
+              .from('users').select('current_streak, tokens').eq('id', user.id).single()
+            return data
+          })(),
+          clearActiveSession(user.id),
+          getDailyFrase(today),
+        ] as const)
 
-      // Streak: qualquer vitória conta
-      if (won) {
-        await supabaseAdmin.rpc('increment_streak', { user_id: user.id })
+        frase = results[4]
 
-        const { data: updatedUser } = await supabaseAdmin
-          .from('users')
-          .select('current_streak, tokens')
-          .eq('id', user.id)
-          .single()
-
+        const updatedUser = results[2]
         const newStreak = updatedUser?.current_streak ?? 0
         if (newStreak > 0 && newStreak % 3 === 0) {
           const newTokens = Math.min((updatedUser?.tokens ?? 0) + 1, 3)
-          await supabaseAdmin
-            .from('users')
-            .update({ tokens: newTokens })
-            .eq('id', user.id)
+          await supabaseAdmin.from('users').update({ tokens: newTokens }).eq('id', user.id)
           tokenEarned = true
         }
       } else {
-        // Derrota — resetar streak e oferecer recovery via token
-        const { data: userData } = await supabaseAdmin
-          .from('users')
-          .select('current_streak, tokens')
-          .eq('id', user.id)
-          .single()
+        // Derrota — leaderboard, clearSession, fetch user e frase em paralelo
+        const results = await Promise.all([
+          supabaseAdmin.from('leaderboard_daily').upsert({ user_id: user.id, date: today, score: finalScore }),
+          clearActiveSession(user.id),
+          supabaseAdmin.from('users').select('current_streak, tokens').eq('id', user.id).single(),
+          getDailyFrase(today),
+        ] as const)
+
+        frase = results[3]
+        const userData = results[2].data
 
         const currentStreak = userData?.current_streak ?? 0
         const currentTokens = userData?.tokens ?? 0
@@ -165,28 +152,22 @@ export async function POST(request: NextRequest) {
           response_tokens = currentTokens
         }
       }
-
-      await clearActiveSession(user.id)
     } else {
-      // Jogo continua — salvar tentativa e atualizar sessão
-      await supabaseAdmin
-        .from('game_sessions')
-        .update({
-          attempts: allAttempts,
-          max_possible_score: newMaxScore,
-        })
-        .eq('id', activeSession.sessionId)
-
-      await setActiveSession(user.id, {
-        ...activeSession,
-        attemptsCount: newAttemptsCount,
-        currentMaxScore: newMaxScore,
-        wrongAttempts: newWrongAttempts,
-        recoveryStartedAt: newRecoveryStartedAt,
-      })
+      // Jogo continua — salvar tentativa e sessão Redis em paralelo
+      await Promise.all([
+        supabaseAdmin
+          .from('game_sessions')
+          .update({ attempts: allAttempts, max_possible_score: newMaxScore })
+          .eq('id', activeSession.sessionId),
+        setActiveSession(user.id, {
+          ...activeSession,
+          attemptsCount: newAttemptsCount,
+          currentMaxScore: newMaxScore,
+          wrongAttempts: newWrongAttempts,
+          recoveryStartedAt: newRecoveryStartedAt,
+        }),
+      ])
     }
-
-    const frase = (won || gameOver) ? await getDailyFrase(getTodayBRT()) : null
 
     const response: AttemptResponse = {
       result,
