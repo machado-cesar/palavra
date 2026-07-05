@@ -120,21 +120,26 @@ export default function GamePage() {
 
   useEffect(() => {
     async function initAuth() {
-      const supabase = getSupabase()
-      const { data: { session } } = await supabase.auth.getSession()
+      try {
+        const supabase = getSupabase()
+        const { data: { session } } = await supabase.auth.getSession()
 
-      if (session) {
-        setAuthToken(session.access_token)
-        return
-      }
+        if (session) {
+          setAuthToken(session.access_token)
+          return
+        }
 
-      const { data, error } = await supabase.auth.signInAnonymously()
-      if (error) {
-        console.error('Erro ao criar sessão anônima:', error)
+        const { data, error } = await supabase.auth.signInAnonymously()
+        if (error) {
+          console.error('Erro ao criar sessão anônima:', error)
+          setIsLoading(false)
+          return
+        }
+        setAuthToken(data.session?.access_token ?? null)
+      } catch (err) {
+        console.error('Erro inesperado no initAuth:', err)
         setIsLoading(false)
-        return
       }
-      setAuthToken(data.session?.access_token ?? null)
     }
 
     initAuth()
@@ -153,10 +158,18 @@ export default function GamePage() {
     if (!authToken) return
 
     async function fetchStatusAndStart() {
-      const res = await fetch('/api/game/status', {
-        headers: { Authorization: `Bearer ${authToken}` }
-      })
-      const json = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let json: any
+      try {
+        const res = await fetch('/api/game/status', {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+        json = await res.json()
+      } catch (err) {
+        console.error('Erro ao buscar status do jogo:', err)
+        setIsLoading(false)
+        return
+      }
       setIsLoading(false)
 
       if (!json.success) return
