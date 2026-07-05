@@ -139,27 +139,14 @@ export default function GamePage() {
           return
         }
 
-        // signInAnonymously pode ser lento em picos de uso — tenta até 3 vezes com backoff
-        let lastErr: unknown = null
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            const { data, error } = await withTimeout(supabase.auth.signInAnonymously(), 12000)
-            if (!error && data.session?.access_token) {
-              setAuthToken(data.session.access_token)
-              return
-            }
-            lastErr = error
-          } catch (e) {
-            lastErr = e
-          }
-          if (attempt < 2) {
-            await new Promise(r => setTimeout(r, 2000 * (attempt + 1)))
-          }
+        const { data, error } = await withTimeout(supabase.auth.signInAnonymously(), 15000)
+        if (error) {
+          console.error('Erro ao criar sessão anônima:', error)
+          setLoadError(true)
+          setIsLoading(false)
+          return
         }
-
-        console.error('signInAnonymously falhou após 3 tentativas:', lastErr)
-        setLoadError(true)
-        setIsLoading(false)
+        setAuthToken(data.session?.access_token ?? null)
       } catch (err) {
         console.error('Erro no initAuth:', err)
         setLoadError(true)
