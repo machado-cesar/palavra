@@ -138,6 +138,7 @@ export default function GamePage() {
         setAuthToken(data.session?.access_token ?? null)
       } catch (err) {
         console.error('Erro inesperado no initAuth:', err)
+        setLoadError(true)
         setIsLoading(false)
       }
     }
@@ -171,13 +172,12 @@ export default function GamePage() {
         setLoadError(true)
         return
       }
-      setLoadError(false)
-      setIsLoading(false)
-
       if (!json.success) {
         setLoadError(true)
+        setIsLoading(false)
         return
       }
+      setLoadError(false)
 
       const { currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning, username: savedUsername } = json.data
       if (userStreak) setStreak(userStreak)
@@ -205,6 +205,7 @@ export default function GamePage() {
         }
         if (completedSession.frase) setDailyFrase(completedSession.frase)
         setShowResult(true)
+        setIsLoading(false)
         return
       }
 
@@ -234,6 +235,7 @@ export default function GamePage() {
           setRecoveryStartedAt(currentSession.recoveryStartedAt)
         }
         setStatus('playing')
+        setIsLoading(false)
         return
       }
 
@@ -241,6 +243,7 @@ export default function GamePage() {
       if (streakAtRisk && userStreak > 0 && userTokens > 0) {
         setStreakAtRiskInfo({ streak: userStreak, tokens: userTokens })
         setShowStreakRestorePrompt(true)
+        setIsLoading(false)
         return
       }
 
@@ -260,7 +263,14 @@ export default function GamePage() {
         setShowOnboarding(true)
       }
 
-      await startGame(authToken!)
+      // startGame define status='playing' → só aí o teclado aparece
+      try {
+        await startGame(authToken!)
+      } catch (err) {
+        console.error('Erro ao iniciar jogo:', err)
+        setLoadError(true)
+      }
+      setIsLoading(false)
     }
 
     fetchStatusAndStart()
@@ -278,11 +288,9 @@ export default function GamePage() {
     if (!json.success) {
       if (json.error === 'Nenhuma palavra configurada para hoje') {
         setWordUnavailable(true)
-      } else {
-        setMessage(json.error || 'Erro ao iniciar jogo')
-        setTimeout(() => setMessage(''), 3000)
+        return
       }
-      return
+      throw new Error(json.error || 'Erro ao iniciar jogo')
     }
 
     setWordUnavailable(false)
@@ -576,16 +584,7 @@ export default function GamePage() {
           </p>
         </div>
         <button
-          onClick={() => {
-            setLoadError(false)
-            setIsLoading(true)
-            // Re-trigger fetchStatusAndStart by resetting authToken briefly
-            if (authToken) {
-              const t = authToken
-              setAuthToken(null)
-              setTimeout(() => setAuthToken(t), 0)
-            }
-          }}
+          onClick={() => window.location.reload()}
           className="px-6 py-2.5 text-sm font-semibold bg-white text-zinc-900
             rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
         >
