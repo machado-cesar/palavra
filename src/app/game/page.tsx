@@ -47,6 +47,7 @@ export default function GamePage() {
   const [isRestoringStreak, setIsRestoringStreak] = useState(false)
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [wordUnavailable, setWordUnavailable] = useState(false)
   const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recoveredPointsRef = useRef(0)
@@ -168,11 +169,16 @@ export default function GamePage() {
       } catch (err) {
         console.error('Erro ao buscar status do jogo:', err)
         setIsLoading(false)
+        setLoadError(true)
         return
       }
+      setLoadError(false)
       setIsLoading(false)
 
-      if (!json.success) return
+      if (!json.success) {
+        setLoadError(true)
+        return
+      }
 
       const { currentSession, completedSession, streak: userStreak, usernameConfirmed: confirmed, tokens: userTokens, streakAtRisk, isReturning, username: savedUsername } = json.data
       if (userStreak) setStreak(userStreak)
@@ -557,6 +563,36 @@ export default function GamePage() {
         </div>
         <button
           onClick={() => authToken && startGame(authToken)}
+          className="px-6 py-2.5 text-sm font-semibold bg-white text-zinc-900
+            rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 gap-6 max-w-lg mx-auto text-center">
+        <div className="text-4xl">⚠️</div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold">Não foi possível carregar o jogo</h2>
+          <p className="text-zinc-400 text-sm">
+            Verifique sua conexão e tente novamente.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setLoadError(false)
+            setIsLoading(true)
+            // Re-trigger fetchStatusAndStart by resetting authToken briefly
+            if (authToken) {
+              const t = authToken
+              setAuthToken(null)
+              setTimeout(() => setAuthToken(t), 0)
+            }
+          }}
           className="px-6 py-2.5 text-sm font-semibold bg-white text-zinc-900
             rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
         >
