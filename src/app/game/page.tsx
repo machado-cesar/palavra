@@ -119,25 +119,36 @@ export default function GamePage() {
   // ─── Auth anônimo automático ───────────────────────────────────────────────
 
   useEffect(() => {
+    // Rejeita uma promise depois de `ms` milissegundos — evita travamento de rede indefinido
+    function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+      return Promise.race([
+        p,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`timeout após ${ms}ms`)), ms)
+        ),
+      ])
+    }
+
     async function initAuth() {
       try {
         const supabase = getSupabase()
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session } } = await withTimeout(supabase.auth.getSession(), 8000)
 
         if (session) {
           setAuthToken(session.access_token)
           return
         }
 
-        const { data, error } = await supabase.auth.signInAnonymously()
+        const { data, error } = await withTimeout(supabase.auth.signInAnonymously(), 10000)
         if (error) {
           console.error('Erro ao criar sessão anônima:', error)
+          setLoadError(true)
           setIsLoading(false)
           return
         }
         setAuthToken(data.session?.access_token ?? null)
       } catch (err) {
-        console.error('Erro inesperado no initAuth:', err)
+        console.error('Erro no initAuth (possível timeout de rede):', err)
         setLoadError(true)
         setIsLoading(false)
       }
@@ -162,12 +173,16 @@ export default function GamePage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let json: any
       try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 12000)
         const res = await fetch('/api/game/status', {
-          headers: { Authorization: `Bearer ${authToken}` }
+          headers: { Authorization: `Bearer ${authToken}` },
+          signal: controller.signal,
         })
+        clearTimeout(timeoutId)
         json = await res.json()
       } catch (err) {
-        console.error('Erro ao buscar status do jogo:', err)
+        console.error('Erro ao buscar status do jogo (possível timeout):', err)
         setIsLoading(false)
         setLoadError(true)
         return
