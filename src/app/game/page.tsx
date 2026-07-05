@@ -52,7 +52,6 @@ export default function GamePage() {
   const recoveryIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const recoveredPointsRef = useRef(0)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [pendingStart, setPendingStart] = useState(false)
   const [showStreakRecovery, setShowStreakRecovery] = useState(false)
   const [streakRecoveryInfo, setStreakRecoveryInfo] = useState<{ prevStreak: number; tokens: number } | null>(null)
   const [isRecoveringStreak, setIsRecoveringStreak] = useState(false)
@@ -255,12 +254,10 @@ export default function GamePage() {
         trackEvent('streak_return', { streak: userStreak })
       }
 
-      // Onboarding: exibe apenas na primeira visita
+      // Onboarding: exibe por cima do jogo na primeira visita
       const seen = localStorage.getItem('char5_onboarding_seen')
       if (!seen) {
         setShowOnboarding(true)
-        setPendingStart(true)
-        return
       }
 
       await startGame(authToken!)
@@ -531,13 +528,9 @@ export default function GamePage() {
 
   // ─── Onboarding ───────────────────────────────────────────────────────────
 
-  async function handleOnboardingConfirm() {
+  function handleOnboardingConfirm() {
     localStorage.setItem('char5_onboarding_seen', '1')
     setShowOnboarding(false)
-    if (pendingStart && authToken) {
-      setPendingStart(false)
-      await startGame(authToken)
-    }
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
