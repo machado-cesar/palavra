@@ -290,7 +290,10 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
               className="flex-1 py-2.5 text-sm text-zinc-400 border border-zinc-700
                 rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
             >
-              📊 Estatísticas
+              <span className="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Estatísticas
+              </span>
             </button>
           )}
           <a
@@ -299,7 +302,10 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
               rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
             onClick={() => window.gtag?.('event', 'group_page_opened', { source: 'result_screen' })}
           >
-            👥 Grupos
+            <span className="inline-flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Grupos
+            </span>
           </a>
         </div>
 
