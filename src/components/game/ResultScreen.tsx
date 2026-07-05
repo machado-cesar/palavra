@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Attempt, DailyFrase } from '@/types'
 import { useNotifications } from '@/hooks/useNotifications'
+import StatsModal from './StatsModal'
 
 interface ResultScreenProps {
   won: boolean
@@ -79,6 +80,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
   const [visible, setVisible] = useState(false)
   const [copied, setCopied] = useState(false)
   const [userRank, setUserRank] = useState<number | null>(null)
+  const [showStats, setShowStats] = useState(false)
   const { supported, subscribe } = useNotifications()
 
   // Entra com animação após um breve delay
@@ -146,7 +148,8 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
   }
 
   return (
-    /* Backdrop */
+    <>
+    {/* Backdrop */}
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center px-4
         transition-all duration-400 ease-out
@@ -279,6 +282,17 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           </button>
         </div>
 
+        {/* Estatísticas */}
+        {authToken && (
+          <button
+            onClick={() => setShowStats(true)}
+            className="w-full py-2.5 text-sm text-zinc-400 border border-zinc-700
+              rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
+          >
+            📊 Minhas estatísticas
+          </button>
+        )}
+
         {/* Link para modo incansável */}
         <p className="text-center text-xs text-zinc-600">
           Quer praticar mais?{' '}
@@ -289,5 +303,11 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
       </div>
       </div>
     </div>
+
+    {/* Modal de estatísticas */}
+    {showStats && authToken && (
+      <StatsModal authToken={authToken} onClose={() => setShowStats(false)} />
+    )}
+    </>
   )
 }
