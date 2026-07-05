@@ -282,33 +282,33 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           </button>
         </div>
 
-        {/* Estatísticas */}
-        {authToken && (
-          <button
-            onClick={() => setShowStats(true)}
-            className="w-full py-2.5 text-sm text-zinc-400 border border-zinc-700
+        {/* Estatísticas + Grupos */}
+        <div className="flex gap-3">
+          {authToken && (
+            <button
+              onClick={() => setShowStats(true)}
+              className="flex-1 py-2.5 text-sm text-zinc-400 border border-zinc-700
+                rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
+            >
+              📊 Estatísticas
+            </button>
+          )}
+          <a
+            href="/grupos"
+            className="flex-1 py-2.5 text-center text-sm text-zinc-400 border border-zinc-700
               rounded-lg hover:border-zinc-500 hover:text-white transition-colors"
+            onClick={() => window.gtag?.('event', 'group_page_opened', { source: 'result_screen' })}
           >
-            📊 Minhas estatísticas
-          </button>
-        )}
+            👥 Grupos
+          </a>
+        </div>
 
         {/* Links secundários */}
-        <div className="space-y-1.5 text-center text-xs text-zinc-600">
+        <div className="text-center text-xs text-zinc-600">
           <p>
             Quer praticar mais?{' '}
             <a href="/incansavel" className="text-zinc-400 hover:text-white underline transition-colors">
               Modo incansável →
-            </a>
-          </p>
-          <p>
-            Jogue contra seus amigos em{' '}
-            <a
-              href="/grupos"
-              className="text-zinc-400 hover:text-white underline transition-colors"
-              onClick={() => window.gtag?.('event', 'group_page_opened', { source: 'result_screen' })}
-            >
-              grupos →
             </a>
           </p>
         </div>
