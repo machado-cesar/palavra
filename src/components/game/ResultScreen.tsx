@@ -319,7 +319,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
             bg-green-600 hover:bg-green-500 text-white
             rounded-xl active:scale-95 transition-all shadow-lg"
         >
-          Responda nossa pesquisa! →
+          Responda nossa pesquisa!
         </a>
 
         {/* Links secundários */}
@@ -327,7 +327,7 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           <p>
             Quer praticar mais?{' '}
             <a href="/incansavel" className="text-zinc-400 hover:text-white underline transition-colors">
-              Modo incansável →
+              Modo incansável
             </a>
           </p>
         </div>

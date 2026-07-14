@@ -108,7 +108,7 @@ export default function OnboardingModal({ onConfirm }: OnboardingModalProps) {
               className="w-full py-2.5 text-sm font-semibold bg-white text-zinc-900
                 rounded-lg hover:bg-zinc-100 active:scale-95 transition-all"
             >
-              Próximo →
+              Próximo
             </button>
           </div>
         ) : (

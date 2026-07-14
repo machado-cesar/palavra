@@ -243,7 +243,7 @@ export default function ComoJogarPage() {
         className="w-full py-3 text-center text-sm font-semibold bg-white text-zinc-900
           rounded-xl hover:bg-zinc-100 active:scale-95 transition-all mt-2"
       >
-        Jogar agora →
+        Jogar agora
       </a>
 
     </div>

@@ -88,7 +88,7 @@ export default function ProjectEndModal({ onClose }: ProjectEndModalProps) {
               bg-green-600 hover:bg-green-500 text-white
               rounded-xl active:scale-95 transition-all shadow-lg"
           >
-            Responda nossa pesquisa! →
+            Responda nossa pesquisa!
           </a>
 
           {/* Rodapé */}
@@ -102,7 +102,7 @@ export default function ProjectEndModal({ onClose }: ProjectEndModalProps) {
             onClick={handleClose}
             className="block w-full text-center text-xs text-zinc-600 hover:text-zinc-400 transition-colors pt-1"
           >
-            Ver resultado do jogo →
+            Ver resultado do jogo
           </button>
 
         </div>

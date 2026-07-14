@@ -224,7 +224,7 @@ export default function GroupRankingPage({ params }: { params: Promise<{ code: s
         {/* Link para jogar */}
         <p className="text-center text-xs text-zinc-600 pt-2">
           <a href="/game" className="text-zinc-500 hover:text-white underline transition-colors">
-            Jogar agora →
+            Jogar agora
           </a>
         </p>
 

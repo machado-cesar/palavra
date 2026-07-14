@@ -156,7 +156,7 @@ export default function IncansavelRegrasPage() {
           className="w-full py-3 text-center text-sm font-semibold bg-white text-zinc-900
             rounded-xl hover:bg-zinc-100 active:scale-95 transition-all"
         >
-          Jogar agora →
+          Jogar agora
         </a>
         <a
           href="/como-jogar"
