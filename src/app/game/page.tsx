@@ -10,6 +10,7 @@ import ResultScreen from '@/components/game/ResultScreen'
 import UsernameModal from '@/components/game/UsernameModal'
 import OnboardingModal from '@/components/game/OnboardingModal'
 import StreakRecoveryModal from '@/components/game/StreakRecoveryModal'
+import ProjectEndModal from '@/components/game/ProjectEndModal'
 import StatsModal from '@/components/game/StatsModal'
 import { Attempt, GameStatus, LetterStatus } from '@/types'
 import { normalizeWord } from '@/lib/words'
@@ -61,8 +62,18 @@ export default function GamePage() {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [showStatsModal, setShowStatsModal] = useState(false)
   const [showChangeNickModal, setShowChangeNickModal] = useState(false)
+  const [showProjectEndModal, setShowProjectEndModal] = useState(false)
   const [dailyFrase, setDailyFrase] = useState<import('@/types').DailyFrase | null>(null)
   const settingsRef = useRef<HTMLDivElement>(null)
+
+  // ─── Exibir modal de encerramento do projeto (uma vez) ou ir direto ao resultado ──
+  function showProjectEndOrResult() {
+    if (localStorage.getItem('char5_project_end_seen')) {
+      setShowResult(true)
+    } else {
+      setShowProjectEndModal(true)
+    }
+  }
 
   // ─── Recovery interval — gerenciado aqui para cancelamento síncrono ─────────
 
@@ -439,7 +450,7 @@ export default function GamePage() {
 
     function proceedAfterGame() {
       if (!usernameConfirmed) setShowUsernameModal(true)
-      else setShowResult(true)
+      else showProjectEndOrResult()
     }
 
     if (won || gameOver) {
@@ -520,7 +531,7 @@ export default function GamePage() {
     setShowStreakRecovery(false)
     setStreakRecoveryInfo(null)
     if (!usernameConfirmed) setShowUsernameModal(true)
-    else setShowResult(true)
+    else showProjectEndOrResult()
   }
 
   async function handleStreakRecover() {
@@ -871,6 +882,16 @@ export default function GamePage() {
         />
       )}
 
+      {/* Modal de encerramento do projeto — aparece uma vez, antes do resultado */}
+      {showProjectEndModal && (
+        <ProjectEndModal
+          onClose={() => {
+            setShowProjectEndModal(false)
+            setShowResult(true)
+          }}
+        />
+      )}
+
       {/* Modal de onboarding — aparece apenas na primeira visita */}
       {showOnboarding && (
         <OnboardingModal onConfirm={handleOnboardingConfirm} />
@@ -892,7 +913,7 @@ export default function GamePage() {
             setUsernameConfirmed(true)
             setCurrentUsername(username)
             setShowUsernameModal(false)
-            setShowResult(true)
+            showProjectEndOrResult()
             window.fbq?.('track', 'Lead')
           }}
           onSkip={() => {

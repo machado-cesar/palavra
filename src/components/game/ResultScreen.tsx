@@ -309,6 +309,19 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
           </a>
         </div>
 
+        {/* Pesquisa de encerramento do projeto */}
+        <a
+          href="https://forms.gle/1jnyLdAaCLj1EWmb9"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => window.gtag?.('event', 'project_end_survey_clicked', { source: 'result_screen' })}
+          className="block w-full py-3 text-center text-sm font-bold
+            bg-green-600 hover:bg-green-500 text-white
+            rounded-xl active:scale-95 transition-all shadow-lg"
+        >
+          Responda nossa pesquisa! →
+        </a>
+
         {/* Links secundários */}
         <div className="text-center text-xs text-zinc-600">
           <p>
