@@ -78,7 +78,7 @@ export interface ApiResponse<T = void> {
 }
 
 export interface DailyFrase {
-  tipo: 'ditado' | 'etimologia' | 'improvisado'
+  tipo: 'ditado' | 'etimologia' | 'improvisado' | 'haiku'
   texto: string
   explicacao?: string
 }

@@ -241,18 +241,22 @@ export default function ResultScreen({ won, score, attempts, streak, correctWord
         {/* Frase do dia */}
         {frase && (
           <div className="bg-zinc-900 rounded-xl px-4 py-3 space-y-1">
-            <p className="text-zinc-300 text-sm italic leading-relaxed">
-              &ldquo;{frase.texto}&rdquo;
+            {frase.tipo === 'haiku' ? (
+              <p className="text-zinc-300 text-sm italic leading-relaxed whitespace-pre-line text-center">
+                {frase.texto}
+              </p>
+            ) : (
+              <p className="text-zinc-300 text-sm italic leading-relaxed">
+                &ldquo;{frase.texto}&rdquo;
+              </p>
+            )}
+
+            <p className="text-zinc-600 text-xs">
+              {frase.tipo === 'ditado' && 'ditado popular'}
+              {frase.tipo === 'etimologia' && 'etimologia'}
+              {frase.tipo === 'improvisado' && 'ditado impopular'}
+              {frase.tipo === 'haiku' && 'haiku'}
             </p>
-            {frase.tipo === 'ditado' && (
-              <p className="text-zinc-600 text-xs">ditado popular</p>
-            )}
-            {frase.tipo === 'etimologia' && (
-              <p className="text-zinc-600 text-xs">etimologia</p>
-            )}
-            {frase.tipo === 'improvisado' && (
-              <p className="text-zinc-600 text-xs">ditado impopular</p>
-            )}
           </div>
         )}
 
